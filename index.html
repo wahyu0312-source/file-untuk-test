@@ -1,135 +1,48 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>出荷検査システム</title>
+  <title>CORS Test</title>
   <style>
-    :root { 
-      --primary-color: #34495E; --secondary-color: #F5F7FA; --border-color: #EAECEE; --shadow: 0 4px 12px rgba(0,0,0,0.08); 
-    }
-    *, *::before, *::after { box-sizing: border-box; }
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
-      background-color: var(--secondary-color); margin: 0; font-size: 14px; 
-    }
-    .container { width: 95%; max-width: 1200px; margin: 1.5rem auto; background-color: #fff; box-shadow: var(--shadow); border-radius: 8px; }
-    .header { background-color: var(--primary-color); color: white; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-radius: 8px 8px 0 0; }
-    .header-controls { display: flex; align-items: center; gap: 1rem; }
-    .content { padding: 1.5rem; }
-    .controls-bar { display: flex; justify-content: space-between; align-items: center; padding-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap; }
-    .search-bar { display: flex; gap: 0.5rem; flex-grow: 1; min-width: 300px; }
-    .filter-bar { display: flex; align-items: center; gap: 0.5rem; white-space: nowrap; }
-    input, select, button { font-family: inherit; font-size: 1rem; }
-    input[type="text"], select { width:100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 5px; }
-    .action-button { background-color: var(--primary-color); color: white; border: none; padding: 0.75rem 1rem; border-radius: 5px; cursor: pointer; font-weight: 500; }
-    .table-container { width: 100%; overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 0.8rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
-    th { background-color: #F8F9FA; font-size: 0.8rem; }
-    tr.is-editing { background-color: #FEF9E7 !important; }
-    .status-badge { padding: 0.2em 0.6em; border-radius: 10px; color: white; font-size: 0.8rem; display: inline-block; }
-    .status-完了, .status-完成 { background-color: #27AE60; } .status-検査中 { background-color: #F39C12; } .status-保留 { background-color: #E74C3C; } .status-検査待ち { background-color: #85929E; } .status-出荷済 { background-color: #3498DB; } .status-default { background-color: #7f8c8d; }
-    .update-row-btn { background-color: #ECF0F1; border: 1px solid #BDC3C7; color: #34495E; padding: 0.3rem 0.8rem; border-radius: 5px; cursor: pointer; font-size: 0.8rem; }
-    .loader { text-align: center; padding: 2rem; }
-    .message { padding: 1rem; text-align: center; border-radius: 5px; background-color:#FADBD8; color:#C0392B; }
+    body { font-family: sans-serif; padding: 2em; }
+    #response { background-color: #f0f0f0; border: 1px solid #ccc; padding: 1em; margin-top: 1em; white-space: pre-wrap; }
   </style>
 </head>
 <body>
-  <div id="login-page"></div>
-  <div id="app-page" class="container" style="display:none;">
-    <div class="header"><h3>出荷検査システム</h3><div class="header-controls"><span id="user-display"></span></div></div>
-    <div class="content">
-      <div class="controls-bar">
-        <div class="search-bar"><input type="text" id="search-input" placeholder="図番で検索..."><button id="search-btn" class="action-button">検索</button></div>
-        <div class="filter-bar"><input type="checkbox" id="hide-shipped-checkbox"><label for="hide-shipped-checkbox">Sembunyikan status [出荷済]</label></div>
-      </div>
-      <div class="table-container" id="shipment-list"><div class="loader">読み込み中...</div></div>
-    </div>
-  </div>
-<script>
-// ##################################################################
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw0sWPTgOtYl2kFq8nMbm0Ax_UGUbj48A-y1FmmZwGjyTDFXlAuSqTvwgPp_vZ-Ed8OPg/exec"; 
-// ##################################################################
-let CURRENT_USER = "";
+  <h1>Apps Script CORS Connection Test</h1>
+  <button id="testButton">Test POST Request</button>
+  <pre id="response">Click the button to test...</pre>
+  <script>
+    // GANTI URL DI BAWAH INI DENGAN URL BARU DARI LANGKAH 2
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw0sWPTgOtYl2kFq8nMbm0Ax_UGUbj48A-y1FmmZwGjyTDFXlAuSqTvwgPp_vZ-Ed8OPg/exec";
 
-document.addEventListener('DOMContentLoaded', () => {
-    const loginPage = document.getElementById('login-page');
-    const appPage = document.getElementById('app-page');
-    
-    async function postToAction(payload) {
-        const response = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            // --- PERBAIKAN CORS DI SINI ---
-            // mode: 'no-cors' dihapus
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Diubah dari application/json
-            // -----------------------------
-            body: JSON.stringify(payload),
-            redirect: 'follow'
-        });
-        if (!response.ok) throw new Error('Network response was not ok.');
-        const result = await response.json();
-        if (result.error) throw new Error(result.error);
-        return result;
-    }
+    document.getElementById('testButton').addEventListener('click', () => {
+      const responseEl = document.getElementById('response');
+      responseEl.textContent = 'Sending request...';
 
-    function showLoginPage() {
-      appPage.style.display = 'none';
-      loginPage.innerHTML = `<div style="max-width:480px; margin: 5rem auto; background: #fff; border-radius:8px; box-shadow: var(--shadow);"><div class="header" style="text-align:center; display:block;">出荷検査システム</div><div class="content"><form id="login-form"><div style="margin-bottom:1rem;"><label for="name" style="display:block; margin-bottom:0.5rem;">ログイン者を選択</label><select id="name" required style="width:100%; padding:0.75rem; border:1px solid var(--border-color);"></select></div><button type="submit" class="action-button" style="width:100%;">Masuk</button><div id="login-msg" class="message" style="display:none;"></div></form></div></div>`;
-      loginPage.style.display = 'block';
-      
-      const nameSelect = document.getElementById('name');
-      nameSelect.innerHTML = '<option value="" disabled selected>Loading...</option>';
-
-      postToAction({ action: 'getWebUserNameList' })
-        .then(names => {
-          nameSelect.innerHTML = '<option value="" disabled selected>名前を選択</option>';
-          if (names && names.length > 0) names.forEach(name => nameSelect.innerHTML += `<option value="${name}">${name}</option>`);
-        })
-        .catch(err => {
-          const msgEl = document.getElementById('login-msg');
-          msgEl.textContent = `Gagal memuat user: ${err.message}`;
-          msgEl.style.display = 'block';
-        });
-
-      document.getElementById('login-form').addEventListener('submit', handleLogin);
-    }
-    
-    function handleLogin(e){
-      e.preventDefault();
-      const userName = document.getElementById('name').value;
-      if (!userName) { alert("Pilih nama Anda."); return; }
-      CURRENT_USER = userName;
-      showAppPage(CURRENT_USER);
-    }
-
-    function showAppPage(userName) {
-      loginPage.style.display = 'none'; appPage.style.display = 'block';
-      document.getElementById('user-display').textContent = `ユーザー: ${userName}`;
-      loadInitialData();
-    }
-
-    async function loadInitialData() {
-      const listContainer = document.getElementById('shipment-list');
-      const hideShipped = document.getElementById('hide-shipped-checkbox').checked;
-      listContainer.innerHTML = '<div class="loader">読み込み中...</div>';
-      try {
-        const data = await postToAction({ action: 'getRecentShipments', hideShipped: hideShipped });
-        displayTable(data);
-      } catch (err) { listContainer.innerHTML = `<div class="message">${err.message}</div>`; }
-    }
-    
-    // ... sisa kode lainnya (displayTable, switchToEditMode, dll) tetap sama persis
-    function getStatusClassName(statusText) { const text = String(statusText).trim(); const statusMap = {'完了':'completed','完成':'completed','検査中':'inspecting','保留':'on-hold','検査待ち':'waiting','出荷済':'shipped','レーザ加工':'laser-processing','シート組立':'sheet-assembly','塗装':'painting','洗浄':'cleaning','材料入荷':'materials-arrival'}; return statusMap[text] || 'default'; }
-    function displayTable(data, isSearchResult = false) { const container = document.getElementById('shipment-list'); if (!data || data.length === 0) { container.innerHTML = `<p style="text-align:center; padding:2rem;">${isSearchResult ? 'データが見つかりません。' : 'データがありません。'}</p>`; return; } const cols = ['出荷日', '顧客名', '図番', '製品状況']; let tableHTML = '<table><thead><tr>'; cols.forEach(c => tableHTML += `<th>${c}</th>`); tableHTML += '<th>アクション</th></tr></thead><tbody>'; data.forEach(row => { const searchKey = row['図番']; tableHTML += `<tr data-row-id="${searchKey}">`; cols.forEach(col => { let val = row[col] || ''; if (col === '製品状況' && val) { const className = getStatusClassName(val); val = `<div class="status-display" data-id="${searchKey}"><span class="status-badge status-${className}">${val}</span></div>`; } else { val = `<div>${val}</div>`; } tableHTML += `<td>${val}</td>`; }); tableHTML += `<td><button class="update-row-btn" data-id="${searchKey}">更新</button></td></tr>`; }); container.innerHTML = tableHTML + '</tbody></table>'; }
-    async function switchToEditMode(updateBtn) { const currentRow = updateBtn.closest('tr'); const searchKey = updateBtn.dataset.id; const statusDiv = currentRow.querySelector('.status-display'); document.querySelectorAll('.update-row-btn').forEach(btn => btn.style.display = 'block'); currentRow.classList.add('is-editing'); updateBtn.style.display = 'none'; statusDiv.innerHTML = '<div class="loader">...</div>'; try { const res = await postToAction({ action: 'getProductDetails', searchKey: searchKey }); if (res.ok) { const { statusOptions, currentStatus } = res; let optionsHTML = ''; statusOptions.forEach(opt => optionsHTML += `<option value="${opt}" ${opt === currentStatus ? 'selected' : ''}>${opt}</option>`); statusDiv.innerHTML = `<select class="status-select" data-id="${searchKey}"><option value="" disabled>Pilih status</option>${optionsHTML}</select>`; } else { throw new Error(res.msg); } } catch (err) { statusDiv.innerHTML = `<span style="color:red;">Error</span>`; } }
-    async function handleStatusChange(e) { const selectEl = e.target; selectEl.disabled = true; try { const result = await postToAction({ action: 'updateProductStatus', updater: CURRENT_USER, searchKey: selectEl.dataset.id, newStatus: selectEl.value }); if (!result.ok) throw new Error(result.msg); loadInitialData(); } catch (err) { alert('Update Gagal: ' + err.message); loadInitialData(); } }
-    document.getElementById('hide-shipped-checkbox').addEventListener('change', loadInitialData);
-    document.getElementById('search-btn').addEventListener('click', async () => {  const id = document.getElementById('search-input').value.trim(); const listContainer = document.getElementById('shipment-list'); listContainer.innerHTML = '<div class="loader">Mencari...</div>'; if (id) { try { const res = await postToAction({ action: 'getProductDetails', searchKey: id }); if (res.ok) displayTable([res.details], true); else throw new Error(res.msg); } catch (err) { listContainer.innerHTML = `<p style="text-align:center; padding:2rem;">${err.message}</p>`; } } else loadInitialData(); });
-    document.getElementById('shipment-list').addEventListener('click', e => { if (e.target.classList.contains('update-row-btn')) switchToEditMode(e.target); });
-    document.getElementById('shipment-list').addEventListener('change', e => { if (e.target.classList.contains('status-select')) handleStatusChange(e); });
-    showLoginPage();
-});
-</script>
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'cors',
+        cache: 'no-cache',
+        headers: {
+          // Gunakan text/plain untuk menghindari "preflight request"
+          'Content-Type': 'text/plain;charset=utf-8', 
+        },
+        body: JSON.stringify({ test: 'data' }) // Isi data tidak penting
+      })
+      .then(res => {
+        if (!res.ok) {
+          throw new Error('Network response was not ok. Status: ' + res.status);
+        }
+        return res.json();
+      })
+      .then(data => {
+        responseEl.textContent = '✅ Success:\n\n' + JSON.stringify(data, null, 2);
+      })
+      .catch(err => {
+        responseEl.textContent = '❌ Error:\n\n' + err.toString();
+        console.error(err);
+      });
+    });
+  </script>
 </body>
 </html>
