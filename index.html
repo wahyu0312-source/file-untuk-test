@@ -29,7 +29,7 @@
     th { background-color: #F8F9FA; font-size: 0.8rem; }
     tr.is-editing { background-color: #FEF9E7 !important; }
     .status-badge { padding: 0.2em 0.6em; border-radius: 10px; color: white; font-size: 0.8rem; display: inline-block; }
-    .status-完了, .status-完成 { background-color: #27AE60; } .status-検査中 { background-color: #F39C12; } .status-保留 { background-color: #E74C3C; } .status-検査待ち { background-color: #85929E; } .status-出荷済 { background-color: #3498DB; }
+    .status-完了, .status-完成 { background-color: #27AE60; } .status-検査中 { background-color: #F39C12; } .status-保留 { background-color: #E74C3C; } .status-検査待ち { background-color: #85929E; } .status-出荷済 { background-color: #3498DB; } .status-default { background-color: #7f8c8d; }
     .update-row-btn { background-color: #ECF0F1; border: 1px solid #BDC3C7; color: #34495E; padding: 0.3rem 0.8rem; border-radius: 5px; cursor: pointer; font-size: 0.8rem; }
     .loader { text-align: center; padding: 2rem; }
     .message { padding: 1rem; text-align: center; border-radius: 5px; background-color:#FADBD8; color:#C0392B; }
@@ -49,11 +49,8 @@
   </div>
 <script>
 // ##################################################################
-// # PENTING: GANTI URL DI BAWAH INI DENGAN URL DEPLOYMENT ANDA #
-// ##################################################################
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw0sWPTgOtYl2kFq8nMbm0Ax_UGUbj48A-y1FmmZwGjyTDFXlAuSqTvwgPp_vZ-Ed8OPg/exec"; 
 // ##################################################################
-
 let CURRENT_USER = "";
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -63,9 +60,10 @@ document.addEventListener('DOMContentLoaded', () => {
     async function postToAction(payload) {
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
-            mode: 'cors',
-            cache: 'no-cache',
-            headers: { 'Content-Type': 'application/json' },
+            // --- PERBAIKAN CORS DI SINI ---
+            // mode: 'no-cors' dihapus
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Diubah dari application/json
+            // -----------------------------
             body: JSON.stringify(payload),
             redirect: 'follow'
         });
@@ -121,24 +119,15 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (err) { listContainer.innerHTML = `<div class="message">${err.message}</div>`; }
     }
     
-    function getStatusClassName(statusText) {
-      // ... (fungsi ini sama seperti sebelumnya)
-    }
-
-    function displayTable(data, isSearchResult = false) {
-      // ... (fungsi ini sama seperti sebelumnya)
-    }
-    
-    async function switchToEditMode(updateBtn) {
-      // ... (fungsi ini diubah untuk menggunakan postToAction)
-    }
-    
-    async function handleStatusChange(e) {
-      // ... (fungsi ini diubah untuk menggunakan postToAction)
-    }
-
-    // ... (Semua event listener sama seperti sebelumnya)
-
+    // ... sisa kode lainnya (displayTable, switchToEditMode, dll) tetap sama persis
+    function getStatusClassName(statusText) { const text = String(statusText).trim(); const statusMap = {'完了':'completed','完成':'completed','検査中':'inspecting','保留':'on-hold','検査待ち':'waiting','出荷済':'shipped','レーザ加工':'laser-processing','シート組立':'sheet-assembly','塗装':'painting','洗浄':'cleaning','材料入荷':'materials-arrival'}; return statusMap[text] || 'default'; }
+    function displayTable(data, isSearchResult = false) { const container = document.getElementById('shipment-list'); if (!data || data.length === 0) { container.innerHTML = `<p style="text-align:center; padding:2rem;">${isSearchResult ? 'データが見つかりません。' : 'データがありません。'}</p>`; return; } const cols = ['出荷日', '顧客名', '図番', '製品状況']; let tableHTML = '<table><thead><tr>'; cols.forEach(c => tableHTML += `<th>${c}</th>`); tableHTML += '<th>アクション</th></tr></thead><tbody>'; data.forEach(row => { const searchKey = row['図番']; tableHTML += `<tr data-row-id="${searchKey}">`; cols.forEach(col => { let val = row[col] || ''; if (col === '製品状況' && val) { const className = getStatusClassName(val); val = `<div class="status-display" data-id="${searchKey}"><span class="status-badge status-${className}">${val}</span></div>`; } else { val = `<div>${val}</div>`; } tableHTML += `<td>${val}</td>`; }); tableHTML += `<td><button class="update-row-btn" data-id="${searchKey}">更新</button></td></tr>`; }); container.innerHTML = tableHTML + '</tbody></table>'; }
+    async function switchToEditMode(updateBtn) { const currentRow = updateBtn.closest('tr'); const searchKey = updateBtn.dataset.id; const statusDiv = currentRow.querySelector('.status-display'); document.querySelectorAll('.update-row-btn').forEach(btn => btn.style.display = 'block'); currentRow.classList.add('is-editing'); updateBtn.style.display = 'none'; statusDiv.innerHTML = '<div class="loader">...</div>'; try { const res = await postToAction({ action: 'getProductDetails', searchKey: searchKey }); if (res.ok) { const { statusOptions, currentStatus } = res; let optionsHTML = ''; statusOptions.forEach(opt => optionsHTML += `<option value="${opt}" ${opt === currentStatus ? 'selected' : ''}>${opt}</option>`); statusDiv.innerHTML = `<select class="status-select" data-id="${searchKey}"><option value="" disabled>Pilih status</option>${optionsHTML}</select>`; } else { throw new Error(res.msg); } } catch (err) { statusDiv.innerHTML = `<span style="color:red;">Error</span>`; } }
+    async function handleStatusChange(e) { const selectEl = e.target; selectEl.disabled = true; try { const result = await postToAction({ action: 'updateProductStatus', updater: CURRENT_USER, searchKey: selectEl.dataset.id, newStatus: selectEl.value }); if (!result.ok) throw new Error(result.msg); loadInitialData(); } catch (err) { alert('Update Gagal: ' + err.message); loadInitialData(); } }
+    document.getElementById('hide-shipped-checkbox').addEventListener('change', loadInitialData);
+    document.getElementById('search-btn').addEventListener('click', async () => {  const id = document.getElementById('search-input').value.trim(); const listContainer = document.getElementById('shipment-list'); listContainer.innerHTML = '<div class="loader">Mencari...</div>'; if (id) { try { const res = await postToAction({ action: 'getProductDetails', searchKey: id }); if (res.ok) displayTable([res.details], true); else throw new Error(res.msg); } catch (err) { listContainer.innerHTML = `<p style="text-align:center; padding:2rem;">${err.message}</p>`; } } else loadInitialData(); });
+    document.getElementById('shipment-list').addEventListener('click', e => { if (e.target.classList.contains('update-row-btn')) switchToEditMode(e.target); });
+    document.getElementById('shipment-list').addEventListener('change', e => { if (e.target.classList.contains('status-select')) handleStatusChange(e); });
     showLoginPage();
 });
 </script>
