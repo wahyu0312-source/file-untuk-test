@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  </head>
+<body>
+  <script>
+// --- KONFIGURASI PENTING ---
+const SCRIPT_URL = "PASTE_URL_DEPLOYMENT_BARU_ANDA_DI_SINI"; 
+
+// --- Variabel Global ---
+let CURRENT_USER = "";
+
+document.addEventListener('DOMContentLoaded', () => {
+    // ... (Isi JavaScript lainnya sama seperti sebelumnya, TAPI...)
+
+    // --- GANTI SEMUA BAGIAN "google.script.run" ---
+
+    // CONTOH UNTUK LOGIN:
+    function showLoginPage() {
+      // ... (kode untuk menampilkan form login)
+      fetch(SCRIPT_URL + "?action=getWebUserNameList")
+        .then(res => res.json())
+        .then(names => {
+          // ... (kode untuk mengisi dropdown nama)
+        });
+    }
+
+    // CONTOH UNTUK UPDATE DATA:
+    function handleStatusChange(e) {
+        // ... (kode untuk mengambil status baru dan searchKey)
+        const payload = {
+            action: "updateProductStatus",
+            updater: CURRENT_USER,
+            searchKey: searchKey,
+            newStatus: newStatus
+        };
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(result => {
+            if (!result.ok) throw new Error(result.msg);
+            loadInitialData(); // Muat ulang jika sukses
+        })
+        .catch(err => {
+            alert('Update Gagal: ' + err.message);
+            loadInitialData();
+        });
+    }
+
+    // (Lakukan penggantian yang sama untuk semua fungsi yang memanggil google.script.run)
+});
+</script>
+</body>
+</html>
