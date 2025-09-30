@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>生産ミニERP</title>
+  <title>東京精密発條株式会社システム</title>
   <link rel="icon" href="assets/logo.png">
   <link rel="stylesheet" href="style.css">
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -15,8 +15,8 @@
 <body>
   <nav class="nav">
     <div class="nav-left">
-      <img src="assets/logo.png" class="logo" alt="">
-      <span class="brand">生産ミニERP</span>
+      <img src="assets/tsh.png" class="logo" alt="">
+      <span class="brand">東京精密発條株式会社システム</span>
     </div>
     <div class="nav-right">
       <button id="btnToDash" class="btn ghost hidden"><i data-lucide="layout-dashboard"></i>ダッシュ</button>
@@ -35,7 +35,7 @@
   <!-- Auth -->
   <main id="authView" class="container">
     <section class="card card-tight">
-      <h2>ログイン（スプレッドシートDB）</h2>
+      <h2>ログイン</h2>
       <div class="grid">
         <input id="inUser" placeholder="ユーザー名">
         <input id="inPass" type="password" placeholder="パスワード">
@@ -66,7 +66,7 @@
   <main id="pageDash" class="container hidden">
     <section class="card" id="ordersSection">
       <header class="row-between">
-        <h3><i data-lucide="list"></i> オーダー一覧</h3>
+        <h3><i data-lucide="list"></i> 生産一覧</h3>
         <div class="row gap">
           <input id="searchQ" placeholder="検索..." class="input">
           <button class="btn ghost" id="btnExportOrders"><i data-lucide="download"></i>注文CSV</button>
@@ -126,7 +126,7 @@
           <button class="btn ghost" id="btnSalesExport"><i data-lucide="download"></i>エクスポート</button>
           <button class="btn primary" id="btnSalesSave"><i data-lucide="save"></i>保存</button>
           <button class="btn" id="btnSalesDelete"><i data-lucide="trash-2"></i>削除</button>
-          <button class="btn ghost" id="btnPromote"><i data-lucide="arrow-right"></i>計画に変換</button>
+          <button class="btn ghost" id="btnPromote"><i data-lucide="arrow-right"></i>計画変換</button>
         </div>
       </header>
       <div class="grid">
