@@ -1,8 +1,9 @@
 /* ===== Config ===== */
-const API_BASE = "https://script.google.com/macros/s/AKfycbwN3oi1TLBKcydOFdSLhydqxYIyLFMyYKQr3Z7Ikors5JnRL6IsWLfeEEajcZSftKdZLw/exec";  // Web App URL (/exec)
+const API_BASE = "https://script.google.com/macros/s/AKfycbwN3oi1TLBKcydOFdSLhydqxYIyLFMyYKQr3Z7Ikors5JnRL6IsWLfeEEajcZSftKdZLw/exec";  // << GANTI (Apps Script Web App /exec)
 const API_KEY  = ""; // optional
 
 const PROCESSES = ['レーザ加工','曲げ加工','外枠組立','シャッター組立','シャッター溶接','コーキング','外枠塗装','組立（組立中）','組立（組立済）','外注','検査工程'];
+const MANUAL_STATUSES = ['','生産開始','検査保留','検査済','出荷準備','出荷済','不良品（要リペア）'];
 
 const STATION_RULES = {
   'レーザ加工': (o)=> ({ current_process:'レーザ加工' }),
@@ -12,21 +13,39 @@ const STATION_RULES = {
   'シャッター溶接': (o)=> ({ current_process:'シャッター溶接' }),
   'コーキング':   (o)=> ({ current_process:'コーキング' }),
   '外枠塗装':   (o)=> ({ current_process:'外枠塗装' }),
+  // 二段階：組立工程 → 組立（組立中）→（二回目）組立（組立済）
   '組立工程':   (o)=> (o.current_process==='組立（組立中）' ? { current_process:'組立（組立済）' } : { current_process:'組立（組立中）' }),
   '検査工程':   (o)=> (o.current_process==='検査工程' && !['検査保留','不良品（要リペア）','検査済'].includes(o.status) ? { current_process:'検査工程', status:'検査済' } : { current_process:'検査工程' }),
-  '出荷工程':   (o)=> (o.status==='出荷準備' ? { current_process:o.current_process||'検査工程', status:'出荷済' } : { current_process:'検査工程', status:'出荷準備' })
+  '出荷工程':   (o)=> (o.status==='出荷準備' ? { current_process:o.current_process||'検査工程', status:'出荷済' } : { current_process:'検査工程', status:'出荷準備' }),
+  '外注'      : (o)=> ({ current_process:'外注' })
 };
 
 const $ = s=>document.querySelector(s);
+const $$ = s=>document.querySelectorAll(s);
 const fmtDT = s=> s? new Date(s).toLocaleString(): '';
 const fmtD  = s=> s? new Date(s).toLocaleDateString(): '';
 
 let SESSION=null, CURRENT_PO=null, scanStream=null, scanTimer=null;
 let INV_PREVIEW={info:null, lines:[], inv_id:''};
+let ORDERS_CACHE=[];
 
-/* ===== API ===== */
-async function apiPost(action, body){ const payload={action,...body}; if(API_KEY) payload.apiKey=API_KEY; const res=await fetch(API_BASE,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)}); if(!res.ok) throw new Error('Network '+res.status); const j=await res.json(); if(!j.ok) throw new Error(j.error); return j.data; }
-async function apiGet(params){ const url=API_BASE+'?'+new URLSearchParams(params).toString(); const res=await fetch(url); if(!res.ok) throw new Error('Network '+res.status); const j=await res.json(); if(!j.ok) throw new Error(j.error); return j.data; }
+/* ===== API helpers with spinner ===== */
+async function apiPost(action, body){
+  showLoading(true);
+  try{
+    const payload={action,...body}; if(API_KEY) payload.apiKey=API_KEY;
+    const res=await fetch(API_BASE,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
+    const j=await res.json(); if(!j.ok) throw new Error(j.error); return j.data;
+  }finally{ showLoading(false); }
+}
+async function apiGet(params){
+  showLoading(true);
+  try{
+    const url=API_BASE+'?'+new URLSearchParams(params).toString();
+    const res=await fetch(url); const j=await res.json(); if(!j.ok) throw new Error(j.error); return j.data;
+  }finally{ showLoading(false); }
+}
+function showLoading(v){ $('#loading').classList.toggle('hidden',!v); }
 
 /* ===== Boot ===== */
 window.addEventListener('DOMContentLoaded', ()=>{
@@ -36,6 +55,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   $('#btnToPlan').onclick = ()=>show('pagePlan');
   $('#btnToShip').onclick = ()=>show('pageShip');
   $('#btnToInvoice').onclick = ()=>show('pageInvoice');
+  $('#btnToCharts').onclick  = ()=>{ show('pageCharts'); renderChartsPage(); };
   $('#btnShowStationQR').onclick = openStationQR;
 
   // Auth
@@ -68,32 +88,29 @@ window.addEventListener('DOMContentLoaded', ()=>{
   $('#btnShipExport').onclick = exportShipCSV;
   $('#btnShipEdit').onclick = loadShipForEdit;
   $('#btnShipDelete').onclick = deleteShipUI;
-  $('#btnShipByPO').onclick = ()=>{ const po=$('#s_po').value.trim(); if(!po) return alert('PO入力'); openShipByPO(po); };
-  $('#btnShipByID').onclick = ()=>{ const id=prompt('Ship ID:'); if(!id) return; openShipByID(id.trim()); };
+  $('#btnShipByPO').onclick = ()=>{ const po=$('#s_po').value.trim(); if(!po) return alert('注番入力'); openShipByPO(po); };
+  $('#btnShipByID').onclick = ()=>{ const id=prompt('出荷ID:'); if(!id) return; openShipByID(id.trim()); };
 
   // Scan
   $('#btnScanStart').onclick = scanStart;
   $('#btnScanClose').onclick = scanClose;
+  $('#btnManualApply').onclick = manualApply;
+  fillManualSelectors();
 
-  // Invoice
-  $('#btnInvPreview').onclick = previewInvoiceUI;
-  $('#btnInvCreate').onclick  = createInvoiceUI;
-  $('#btnInvPrint').onclick   = ()=> openInvoiceDoc(INV_PREVIEW.inv_id||'');
-  $('#btnInvCSV').onclick     = exportInvoiceCSV;
+  // Charts page
+  $('#btnChartsReload').onclick = renderChartsPage;
 
   // Restore
   const saved=localStorage.getItem('erp_session');
   if(saved){ SESSION=JSON.parse(saved); enter(); } else show('authView');
 
-  // Icons
   if(window.lucide){ lucide.createIcons(); }
 });
 
-/* ===== UI ===== */
-function show(id){ ['authView','pageDash','pageSales','pagePlan','pageShip','pageInvoice'].forEach(x=>document.getElementById(x)?.classList.add('hidden')); document.getElementById(id)?.classList.remove('hidden'); if(window.lucide){ lucide.createIcons(); } }
+function show(id){ ['authView','pageDash','pageSales','pagePlan','pageShip','pageInvoice','pageCharts'].forEach(x=>document.getElementById(x)?.classList.add('hidden')); document.getElementById(id)?.classList.remove('hidden'); if(window.lucide){ lucide.createIcons(); } }
 function enter(){
   $('#userInfo').textContent = `${SESSION.full_name}・${SESSION.department}`;
-  ['btnLogout','btnChangePass','btnToDash','btnToSales','btnToPlan','btnToShip','btnToInvoice','btnShowStationQR'].forEach(id=>$('#'+id).classList.remove('hidden'));
+  ['btnLogout','btnChangePass','btnToDash','btnToSales','btnToPlan','btnToShip','btnToInvoice','btnShowStationQR','btnToCharts'].forEach(id=>$('#'+id).classList.remove('hidden'));
   if (SESSION.role==='admin' || SESSION.department==='生産技術') $('#btnAddUserWeb').classList.remove('hidden'); else $('#btnAddUserWeb').classList.add('hidden');
   $('#btnAddUserWeb').onclick = openAddUserModal;
 
@@ -120,14 +137,13 @@ async function refreshAll(keep=false){
     const s=await apiGet({action:'stock'}); $('#statFinished').textContent=s.finishedStock; $('#statReady').textContent=s.ready; $('#statShipped').textContent=s.shipped;
     const today=await apiGet({action:'todayShip'}); $('#listToday').innerHTML = today.length? today.map(r=>`<div><span>${r.po_id}</span><span>${fmtD(r.scheduled_date)}・${r.qty}</span></div>`).join(''):'<div class="muted">本日予定なし</div>';
     const loc=await apiGet({action:'locSnapshot'}); $('#gridProc').innerHTML = PROCESSES.map(p=> `<div class="grid-chip"><div class="muted s">${p}</div><div class="h">${loc[p]||0}</div></div>`).join('');
-    if(!keep) $('#searchQ').value=''; await renderOrders(); await renderCharts(); await renderSales();
+    if(!keep) $('#searchQ').value='';
+    await renderOrders();
+    await renderSales();
   }catch(e){ console.error(e); }
 }
-let chM=null,chC=null,chS=null;
-async function renderCharts(){ const d=await apiGet({action:'charts'}), months=['1','2','3','4','5','6','7','8','9','10','11','12']; chM?.destroy(); chM=new Chart($('#chartMonthly'),{type:'bar',data:{labels:months,datasets:[{label:'月別出荷数量（'+d.year+'）',data:d.perMonth}] }}); chC?.destroy(); chC=new Chart($('#chartCustomer'),{type:'bar',data:{labels:Object.keys(d.perCust),datasets:[{label:'得意先別出荷',data:Object.values(d.perCust)}]}}); chS?.destroy(); chS=new Chart($('#chartStock'),{type:'pie',data:{labels:Object.keys(d.stockBuckets),datasets:[{label:'在庫区分',data:Object.values(d.stockBuckets)}]}}); }
 
-/* ===== Orders ===== */
-async function listOrders(){ const q=$('#searchQ').value.trim(); return apiGet({action:'listOrders',q}); }
+async function listOrders(){ const q=$('#searchQ').value.trim(); const rows=await apiGet({action:'listOrders',q}); ORDERS_CACHE=rows; return rows; }
 async function renderOrders(){
   const rows=await listOrders();
   $('#tbOrders').innerHTML = rows.map(r=>`
@@ -139,7 +155,11 @@ async function renderOrders(){
       <td>${r['品番']||''}</td>
       <td>${r['図番']||''}</td>
       <td><span class="badge">${r.status}</span></td>
-      <td>${r.current_process}</td>
+      <td>
+        <select class="s selProc" data-po="${r.po_id}">
+          ${PROCESSES.map(p=>`<option ${p===r.current_process?'selected':''}>${p}</option>`).join('')}
+        </select>
+      </td>
       <td class="s muted">${fmtDT(r.updated_at)}</td>
       <td class="s muted">${r.updated_by||''}</td>
       <td class="s">
@@ -149,6 +169,20 @@ async function renderOrders(){
         <button class="btn ghost s" onclick="openHistory('${r.po_id}')"><i data-lucide="history"></i>履歴</button>
       </td>
     </tr>`).join('');
+
+  // manual inline update (工程チェンジ)
+  $$('.selProc').forEach(sel=>{
+    sel.onchange = async (e)=>{
+      const po=e.target.dataset.po, val=e.target.value;
+      // optimistic UI
+      const row=ORDERS_CACHE.find(x=>x.po_id===po); const prev=row.current_process;
+      row.current_process=val; e.target.disabled=true;
+      try{ await apiPost('updateOrder',{po_id:po,updates:{current_process:val},user:SESSION}); }
+      catch(err){ alert(err.message||err); row.current_process=prev; e.target.value=prev; }
+      finally{ e.target.disabled=false; }
+    };
+  });
+
   if(window.lucide){ lucide.createIcons(); }
 }
 
@@ -193,13 +227,13 @@ async function createOrderUI(){
     refreshAll();
   }catch(e){ alert(e.message||e); }
 }
-async function loadOrderForEdit(){ const po=$('#c_po').value.trim(); if(!po) return alert('PO入力'); try{ const o=await apiGet({action:'ticket',po_id:po}); $('#c_tsuchi').value=o['通知書番号']||''; $('#c_tokui').value=o['得意先']||''; $('#c_tokui_hin').value=o['得意先品番']||''; $('#c_sei').value=o['製番号']||''; $('#c_hinmei').value=o['品名']||''; $('#c_hinban').value=o['品番']||''; $('#c_zuban').value=o['図番']||''; $('#c_kanri').value=o['管理No']||''; alert('読み込み完了。'); }catch(e){ alert(e.message||e); } }
-async function deleteOrderUI(){ if(!(SESSION.role==='admin'||SESSION.department==='生産技術'||SESSION.department==='生産管理部')) return alert('権限不足'); const po=$('#c_po').value.trim(); if(!po) return alert('PO入力'); if(!confirm('削除しますか？')) return; try{ const r=await apiPost('deleteOrder',{po_id:po,user:SESSION}); alert('削除:'+r.deleted); refreshAll(); }catch(e){ alert(e.message||e); } }
+async function loadOrderForEdit(){ const po=$('#c_po').value.trim(); if(!po) return alert('注番入力'); try{ const o=await apiGet({action:'ticket',po_id:po}); $('#c_tsuchi').value=o['通知書番号']||''; $('#c_tokui').value=o['得意先']||''; $('#c_tokui_hin').value=o['得意先品番']||''; $('#c_sei').value=o['製番号']||''; $('#c_hinmei').value=o['品名']||''; $('#c_hinban').value=o['品番']||''; $('#c_zuban').value=o['図番']||''; $('#c_kanri').value=o['管理No']||''; alert('読み込み完了。'); }catch(e){ alert(e.message||e); } }
+async function deleteOrderUI(){ if(!(SESSION.role==='admin'||SESSION.department==='生産技術'||SESSION.department==='生産管理部')) return alert('権限不足'); const po=$('#c_po').value.trim(); if(!po) return alert('注番入力'); if(!confirm('削除しますか？')) return; try{ const r=await apiPost('deleteOrder',{po_id:po,user:SESSION}); alert('削除:'+r.deleted); refreshAll(); }catch(e){ alert(e.message||e); } }
 
 /* ===== Ship ===== */
-async function scheduleUI(){ if(!(SESSION.role==='admin'||SESSION.department==='生産技術'||SESSION.department==='生産管理部')) return alert('権限不足'); const po=$('#s_po').value.trim(), dateIso=$('#s_date').value, qty=$('#s_qty').value; if(!po||!dateIso) return alert('POと日付'); try{ const shipId=$('#s_shipid').value.trim(); if (shipId){ await apiPost('updateShipment',{ship_id:shipId,updates:{po_id:po,scheduled_date:dateIso,qty:qty},user:SESSION}); alert('出荷予定を編集しました'); }else{ const r=await apiPost('scheduleShipment',{po_id:po,dateIso,qty,user:SESSION}); alert('登録: '+r.ship_id); } refreshAll(true); }catch(e){ alert(e.message||e); } }
-async function loadShipForEdit(){ const sid=$('#s_shipid').value.trim(); if(!sid) return alert('Ship ID入力'); try{ const d=await apiGet({action:'shipById',ship_id:sid}); $('#s_po').value=d.shipment.po_id||''; $('#s_date').value = d.shipment.scheduled_date? new Date(d.shipment.scheduled_date).toISOString().slice(0,10):''; $('#s_qty').value=d.shipment.qty||0; alert('読み込み完了。'); }catch(e){ alert(e.message||e); } }
-async function deleteShipUI(){ if(!(SESSION.role==='admin'||SESSION.department==='生産技術'||SESSION.department==='生産管理部')) return alert('権限不足'); const sid=$('#s_shipid').value.trim(); if(!sid) return alert('Ship ID入力'); if(!confirm('削除しますか？')) return; try{ const r=await apiPost('deleteShipment',{ship_id:sid,user:SESSION}); alert('削除:'+r.deleted); refreshAll(true); }catch(e){ alert(e.message||e); } }
+async function scheduleUI(){ if(!(SESSION.role==='admin'||SESSION.department==='生産技術'||SESSION.department==='生産管理部')) return alert('権限不足'); const po=$('#s_po').value.trim(), dateIso=$('#s_date').value, qty=$('#s_qty').value; if(!po||!dateIso) return alert('注番と日付'); try{ const shipId=$('#s_shipid').value.trim(); if (shipId){ await apiPost('updateShipment',{ship_id:shipId,updates:{po_id:po,scheduled_date:dateIso,qty:qty},user:SESSION}); alert('出荷予定を編集しました'); }else{ const r=await apiPost('scheduleShipment',{po_id:po,dateIso,qty,user:SESSION}); alert('登録: '+r.ship_id); } refreshAll(true); }catch(e){ alert(e.message||e); } }
+async function loadShipForEdit(){ const sid=$('#s_shipid').value.trim(); if(!sid) return alert('出荷ID入力'); try{ const d=await apiGet({action:'shipById',ship_id:sid}); $('#s_po').value=d.shipment.po_id||''; $('#s_date').value = d.shipment.scheduled_date? new Date(d.shipment.scheduled_date).toISOString().slice(0,10):''; $('#s_qty').value=d.shipment.qty||0; alert('読み込み完了。'); }catch(e){ alert(e.message||e); } }
+async function deleteShipUI(){ if(!(SESSION.role==='admin'||SESSION.department==='生産技術'||SESSION.department==='生産管理部')) return alert('権限不足'); const sid=$('#s_shipid').value.trim(); if(!sid) return alert('出荷ID入力'); if(!confirm('削除しますか？')) return; try{ const r=await apiPost('deleteShipment',{ship_id:sid,user:SESSION}); alert('削除:'+r.deleted); refreshAll(true); }catch(e){ alert(e.message||e); } }
 
 /* ===== Docs ===== */
 async function openTicket(po_id){ try{ const o=await apiGet({action:'ticket',po_id}); const body=`<h3>生産現品票</h3><table>
@@ -212,7 +246,7 @@ async function openTicket(po_id){ try{ const o=await apiGet({action:'ticket',po_
 function showShipDoc(s,o){ const dt=s.scheduled_date? new Date(s.scheduled_date):null; const body=`<h3>出荷確認書</h3><table>
 <tr><th>得意先</th><td>${o['得意先']||''}</td><th>出荷日</th><td>${dt?dt.toLocaleDateString():'-'}</td></tr>
 <tr><th>品名</th><td>${o['品名']||''}</td><th>品番/図番</th><td>${(o['品番']||'')+' / '+(o['図番']||'')}</td></tr>
-<tr><th>PO</th><td>${o.po_id||s.po_id}</td><th>数量</th><td>${s.qty||0}</td></tr>
+<tr><th>注番</th><td>${o.po_id||s.po_id}</td><th>数量</th><td>${s.qty||0}</td></tr>
 <tr><th>出荷ステータス</th><td>${s.status}</td><th>備考</th><td></td></tr></table>`; showDoc('dlgShip',body); }
 async function openShipByPO(po_id){ try{ const d=await apiGet({action:'shipByPo',po_id}); showShipDoc(d.shipment,d.order);}catch(e){ alert(e.message||e);} }
 async function openShipByID(id){ try{ const d=await apiGet({action:'shipById',ship_id:id}); showShipDoc(d.shipment,d.order);}catch(e){ alert(e.message||e);} }
@@ -224,11 +258,10 @@ async function exportShipCSV(){ const rows=await apiGet({action:'todayShip'}); d
 function downloadCSV(name,rows){ if(!rows||!rows.length) return downloadFile(name,''); const headers=Object.keys(rows[0]); const csv=[headers.join(',')].concat(rows.map(r=> headers.map(h=> String(r[h]??'').replaceAll('"','""')).map(v=>`"${v}"`).join(','))).join('\n'); downloadFile(name,csv); }
 function downloadFile(name,content){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([content],{type:'text/csv'})); a.download=name; a.click(); }
 
-/* ===== Station QR ===== */
+/* ===== Station QR (include 外注) ===== */
 function openStationQR(){
-  const wrap = $('#qrWrap'); if(!wrap){ alert('QRコンテナが見つかりません'); return; }
-  wrap.innerHTML = '';
-  const stations = ['レーザ加工','曲げ工程','外枠組立','シャッター組立','シャッター溶接','コーキング','外枠塗装','組立工程','検査工程','出荷工程'];
+  const wrap = $('#qrWrap'); wrap.innerHTML = '';
+  const stations = ['レーザ加工','曲げ工程','外枠組立','シャッター組立','シャッター溶接','コーキング','外枠塗装','組立工程','検査工程','出荷工程','外注'];
   stations.forEach((st)=>{
     const div = document.createElement('div');
     div.className = 'tile';
@@ -243,28 +276,53 @@ function openStationQR(){
   document.getElementById('dlgStationQR').showModal();
 }
 
-/* ===== Scan ===== */
-function startScanFor(po_id){ CURRENT_PO=po_id; $('#scanPO').textContent=po_id; $('#scanResult').textContent='開始を押してQRを読み取ってください'; document.getElementById('dlgScan').showModal(); }
+/* ===== Scan with permission handling + manual ===== */
+function startScanFor(po_id){
+  CURRENT_PO=po_id; $('#scanPO').textContent=po_id;
+  $('#scanResult').textContent='開始を押してQRを読み取ってください（iOSはSafari推奨）。';
+  document.getElementById('dlgScan').showModal();
+}
 async function scanStart(){
   try{
-    if(scanStream) return;
+    if(location.protocol!=='https:') { alert('カメラ利用にはHTTPSが必要です（GitHub Pages/自社ドメイン推奨）'); return; }
+    if(scanStream) return; // already
     const v=$('#scanVideo'), c=$('#scanCanvas'), ctx=c.getContext('2d');
-    const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
     scanStream=st; v.srcObject=st; await v.play();
     scanTimer=setInterval(async ()=>{
+      if(v.readyState<2) return;
       c.width=v.videoWidth; c.height=v.videoHeight; ctx.drawImage(v,0,0,c.width,c.height);
       const code=jsQR(ctx.getImageData(0,0,c.width,c.height).data,c.width,c.height);
       if(code && code.data){
         const text=code.data.trim(); $('#scanResult').textContent='読み取り: '+text;
         if(/^ST:/.test(text) && CURRENT_PO){
           const station=text.slice(3); const rule=STATION_RULES[station]; if(!rule){ $('#scanResult').textContent='未知のステーション: '+station; return; }
-          try{ const cur=await apiGet({action:'ticket',po_id:CURRENT_PO}); const updates=rule(cur); await apiPost('updateOrder',{po_id:CURRENT_PO,updates,user:SESSION}); $('#scanResult').textContent=`更新完了: ${CURRENT_PO} → ${updates.status||'(状態変更なし)'} / ${updates.current_process||cur.current_process}`; refreshAll(true);}catch(e){ $('#scanResult').textContent='更新失敗: '+(e.message||e); }
+          try{
+            // optimistic
+            const cur=ORDERS_CACHE.find(x=>x.po_id===CURRENT_PO) || await apiGet({action:'ticket',po_id:CURRENT_PO});
+            const updates=rule(cur); $('#scanResult').textContent='更新中...';
+            await apiPost('updateOrder',{po_id:CURRENT_PO,updates,user:SESSION});
+            $('#scanResult').textContent=`更新完了: ${CURRENT_PO} → ${updates.status||'(状態変更なし)'} / ${updates.current_process||cur.current_process}`;
+            refreshAll(true);
+          }catch(e){ $('#scanResult').textContent='更新失敗: '+(e.message||e); }
         }
       }
-    }, 500);
-  }catch(e){ alert('カメラ起動失敗: '+(e.message||e)); }
+    }, 480);
+  }catch(e){
+    alert('カメラ起動失敗: '+(e.message||e)+'\nブラウザのロックアイコン→サイトの設定→カメラ→「許可」を選択してください。');
+  }
 }
 function scanClose(){ clearInterval(scanTimer); scanTimer=null; if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; } document.getElementById('dlgScan').close(); }
+function fillManualSelectors(){
+  $('#manualProc').innerHTML = PROCESSES.map(p=>`<option value="${p}">${p}</option>`).join('');
+  $('#manualStatus').innerHTML = MANUAL_STATUSES.map(s=>`<option value="${s}">${s||'（変更なし）'}</option>`).join('');
+}
+async function manualApply(){
+  if(!CURRENT_PO) return alert('注番が未選択');
+  const proc=$('#manualProc').value, st=$('#manualStatus').value;
+  const updates={}; if(proc) updates.current_process=proc; if(st) updates.status=st;
+  try{ await apiPost('updateOrder',{po_id:CURRENT_PO,updates,user:SESSION}); alert('手動更新しました'); refreshAll(true); }catch(e){ alert(e.message||e); }
+}
 
 /* ===== History ===== */
 async function openHistory(po_id){ try{ const logs=await apiGet({action:'history',po_id}); const html = logs.length? `<table><thead><tr><th>時刻</th><th>旧状態</th><th>新状態</th><th>旧工程</th><th>新工程</th><th>更新者</th><th>備考</th></tr></thead>
@@ -274,7 +332,7 @@ async function openHistory(po_id){ try{ const logs=await apiGet({action:'history
 function openAddUserModal(){
   if(!(SESSION.role==='admin'||SESSION.department==='生産技術')) return alert('権限不足');
   const html=`<h3>ユーザー追加</h3>
-    <div class="grid">
+    <div class="grid m1">
       <input id="au_username" placeholder="ユーザー名">
       <input id="au_password" type="password" placeholder="パスワード">
       <input id="au_fullname" placeholder="氏名">
@@ -333,7 +391,6 @@ async function previewInvoiceUI(){
     if(!$('#inv_date').value) $('#inv_date').value = new Date().toISOString().slice(0,10);
     document.querySelectorAll('#invLines input').forEach(el=> el.oninput=recalcInvoiceTotals);
     recalcInvoiceTotals();
-    alert('集計しました。単価を入力し、請求書発行を押してください。');
   }catch(e){ alert(e.message||e); }
 }
 async function createInvoiceUI(){
@@ -364,7 +421,7 @@ async function openInvoiceDoc(inv_id){
         <tr><th>通貨</th><td>${inv['通貨']||'JPY'}</td><th>備考</th><td>${inv['メモ']||''}</td></tr>
       </table><br>
       <table>
-        <thead><tr><th>#</th><th>品名</th><th>品番</th><th>図番</th><th>数量</th><th>単価</th><th>金額</th><th>PO</th><th>出荷ID</th></tr></thead>
+        <thead><tr><th>#</th><th>品名</th><th>品番</th><th>図番</th><th>数量</th><th>単価</th><th>金額</th><th>注番</th><th>出荷ID</th></tr></thead>
         <tbody>
           ${lines.map(l=>`<tr><td>${l['行No']}</td><td>${l['品名']}</td><td>${l['品番']}</td><td>${l['図番']}</td><td>${l['数量']}</td><td>${l['単価']}</td><td>${l['金額']}</td><td>${l['PO']||''}</td><td>${l['出荷ID']||''}</td></tr>`).join('')}
         </tbody>
@@ -381,7 +438,39 @@ function exportInvoiceCSV(){
   const rows=[...document.querySelectorAll('#invLines tr')].map(tr=>({
     行No:tr.dataset.no, 品名:tr.dataset.hinmei, 品番:tr.dataset.hinban, 図番:tr.dataset.zuban,
     数量:tr.querySelector('.q').value, 単価:tr.querySelector('.p').value,
-    PO:tr.dataset.po, 出荷ID:tr.dataset.shipid
+    注番:tr.dataset.po, 出荷ID:tr.dataset.shipid
   }));
   downloadCSV('invoice_preview.csv', rows);
 }
+
+/* ===== Charts page (Pareto + others) ===== */
+let CHARTS={};
+async function renderChartsPage(){
+  const d=await apiGet({action:'charts'});
+  // Pareto: defect by process
+  const labels=Object.keys(d.defectByProc||{}); const vals=Object.values(d.defectByProc||{});
+  const total=vals.reduce((a,b)=>a+b,0)||1; let cum=0; const cumPct=vals.map(v=> (cum+=v)/total*100 );
+  CHARTS.pareto?.destroy();
+  CHARTS.pareto=new Chart($('#chartPareto'),{
+    type:'bar',
+    data:{labels,datasets:[{label:'不良件数(工程別)',data:vals,yAxisID:'y'}]},
+    options:{responsive:true,plugins:{legend:{display:true}},scales:{y:{beginAtZero:true}, y1:{type:'linear',position:'right',min:0,max:100,ticks:{callback:v=>v+'%'}}}}
+  });
+  // overlay line
+  new Chart($('#chartPareto'),{}); // no-op to reserve (Chart.js 4 handles multiple instances)
+
+  // Customer pie
+  CHARTS.cust?.destroy();
+  CHARTS.cust=new Chart($('#chartCustomer'),{type:'pie',data:{labels:Object.keys(d.perCust),datasets:[{data:Object.values(d.perCust)}]}});
+
+  // Monthly bar
+  CHARTS.month?.destroy();
+  CHARTS.month=new Chart($('#chartMonthly'),{type:'bar',data:{labels:['1','2','3','4','5','6','7','8','9','10','11','12'],datasets:[{label:'月別出荷数量（'+d.year+'）',data:d.perMonth}]}});
+
+  // Stock pie
+  CHARTS.stock?.destroy();
+  CHARTS.stock=new Chart($('#chartStock'),{type:'pie',data:{labels:Object.keys(d.stockBuckets),datasets:[{data:Object.values(d.stockBuckets)}]}});
+}
+
+/* ===== Utils ===== */
+function fillManualSelectorsIf(){ if(!$('#manualProc').children.length) fillManualSelectors(); }
