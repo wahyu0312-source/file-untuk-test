@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
   <title>東京精密発條株式会社システム</title>
   <link rel="icon" href="assets/logo.png">
   <link rel="stylesheet" href="style.css">
@@ -15,7 +15,7 @@
 <body>
   <nav class="nav">
     <div class="nav-left">
-      <img src="assets/tsh.png" class="logo" alt="">
+      <img src="assets/logo.png" class="logo" alt="">
       <span class="brand">東京精密発條株式会社システム</span>
     </div>
     <div class="nav-right">
@@ -24,6 +24,7 @@
       <button id="btnToPlan" class="btn ghost hidden"><i data-lucide="clipboard-list"></i>計画</button>
       <button id="btnToShip" class="btn ghost hidden"><i data-lucide="truck"></i>出荷</button>
       <button id="btnToInvoice" class="btn ghost hidden"><i data-lucide="file-invoice"></i>請求</button>
+      <button id="btnToCharts" class="btn ghost hidden"><i data-lucide="pie-chart"></i>チャート</button>
       <button id="btnShowStationQR" class="btn ghost hidden"><i data-lucide="qr-code"></i>工程QR</button>
       <span id="userInfo" class="muted"></span>
       <button id="btnAddUserWeb" class="btn ghost hidden" title="ユーザー追加"><i data-lucide="user-plus"></i></button>
@@ -32,26 +33,26 @@
     </div>
   </nav>
 
+  <!-- Loading spinner -->
+  <div id="loading" class="loading hidden"><div class="spinner"></div></div>
+
   <!-- Auth -->
   <main id="authView" class="container">
     <section class="card card-tight">
-      <h2>ログイン</h2>
-      <div class="grid">
+      <h2>ログイン（スプレッドシートDB）</h2>
+      <div class="grid m1">
         <input id="inUser" placeholder="ユーザー名">
         <input id="inPass" type="password" placeholder="パスワード">
       </div>
       <details class="card" style="margin-top:.8rem">
         <summary><strong>管理者: ユーザー追加</strong></summary>
-        <div class="grid" style="margin-top:.6rem">
+        <div class="grid m1" style="margin-top:.6rem">
           <input id="nuUser" placeholder="ユーザー名">
           <input id="nuPass" type="password" placeholder="パスワード">
           <input id="nuName" placeholder="氏名">
           <select id="nuDept">
-            <option value="営業">営業</option>
-            <option value="生産技術">生産技術</option>
-            <option value="生産管理部">生産管理部</option>
-            <option value="製造部">製造部</option>
-            <option value="検査部">検査部</option>
+            <option value="営業">営業</option><option value="生産技術">生産技術</option>
+            <option value="生産管理部">生産管理部</option><option value="製造部">製造部</option><option value="検査部">検査部</option>
           </select>
           <select id="nuRole"><option value="member">member</option><option value="manager">manager</option><option value="admin">admin</option></select>
         </div>
@@ -68,15 +69,15 @@
       <header class="row-between">
         <h3><i data-lucide="list"></i> 生産一覧</h3>
         <div class="row gap">
-          <input id="searchQ" placeholder="検索..." class="input">
+          <input id="searchQ" placeholder="検索（注番・品番…）" class="input">
           <button class="btn ghost" id="btnExportOrders"><i data-lucide="download"></i>注文CSV</button>
           <button class="btn ghost" id="btnExportShip"><i data-lucide="download"></i>本日出荷CSV</button>
         </div>
       </header>
-      <div class="table-wrap" style="max-height:55vh">
+      <div class="table-wrap" style="max-height:56vh">
         <table class="table s">
           <thead><tr>
-            <th>PO</th><th>得意先</th><th>製番号</th><th>品名</th><th>品番</th><th>図番</th>
+            <th>注番</th><th>得意先</th><th>製番号</th><th>品名</th><th>品番</th><th>図番</th>
             <th>状態</th><th>工程</th><th>更新日時</th><th>更新者</th><th>操作</th>
           </tr></thead>
           <tbody id="tbOrders"></tbody>
@@ -108,13 +109,6 @@
         </div>
       </div>
     </section>
-
-    <section class="card">
-      <h3><i data-lucide="bar-chart-3"></i> チャート</h3>
-      <canvas id="chartMonthly" height="160"></canvas><hr>
-      <canvas id="chartCustomer" height="160"></canvas><hr>
-      <canvas id="chartStock" height="160"></canvas>
-    </section>
   </main>
 
   <!-- Sales -->
@@ -126,10 +120,10 @@
           <button class="btn ghost" id="btnSalesExport"><i data-lucide="download"></i>エクスポート</button>
           <button class="btn primary" id="btnSalesSave"><i data-lucide="save"></i>保存</button>
           <button class="btn" id="btnSalesDelete"><i data-lucide="trash-2"></i>削除</button>
-          <button class="btn ghost" id="btnPromote"><i data-lucide="arrow-right"></i>計画変換</button>
+          <button class="btn ghost" id="btnPromote"><i data-lucide="arrow-right"></i>計画に変換</button>
         </div>
       </header>
-      <div class="grid">
+      <div class="grid m1">
         <input id="so_id" placeholder="SO（編集用）">
         <input id="so_date" type="date" placeholder="受注日">
         <input id="so_cust" placeholder="得意先" list="dl_tokui">
@@ -147,7 +141,7 @@
       <header class="row-between"><h3><i data-lucide="list"></i> 受注一覧</h3><input id="salesQ" placeholder="検索..." class="input"></header>
       <div class="table-wrap">
         <table class="table s">
-          <thead><tr><th>SO</th><th>受注日</th><th>得意先</th><th>品名</th><th>品番/図番</th><th>数量</th><th>希望納期</th><th>状態</th><th>PO</th><th>更新</th></tr></thead>
+          <thead><tr><th>SO</th><th>受注日</th><th>得意先</th><th>品名</th><th>品番/図番</th><th>数量</th><th>希望納期</th><th>状態</th><th>注番</th><th>更新</th></tr></thead>
           <tbody id="tbSales"></tbody>
         </table>
       </div>
@@ -167,8 +161,8 @@
           <button class="btn" id="btnPlanDelete"><i data-lucide="trash-2"></i>削除</button>
         </div>
       </header>
-      <div class="grid">
-        <input id="c_po" placeholder="PO（編集用）">
+      <div class="grid m1">
+        <input id="c_po" placeholder="注番（編集用）">
         <input id="c_tsuchi" placeholder="通知書番号">
         <input id="c_tokui" placeholder="得意先" list="dl_tokui">
         <input id="c_tokui_hin" placeholder="得意先品番">
@@ -195,15 +189,15 @@
           <button class="btn" id="btnShipDelete"><i data-lucide="trash-2"></i>削除</button>
         </div>
       </header>
-      <div class="grid">
-        <input id="s_po" placeholder="PO ID">
+      <div class="grid m1">
+        <input id="s_po" placeholder="注番">
         <input id="s_date" type="date">
         <input id="s_qty" type="number" min="0" placeholder="数量">
-        <input id="s_shipid" placeholder="Ship ID（編集/削除用）">
+        <input id="s_shipid" placeholder="出荷ID（編集/削除用）">
       </div>
-      <div class="row gap">
-        <button id="btnShipByPO" class="btn ghost grow"><i data-lucide="file-check-2"></i>出荷確認書（PO）</button>
-        <button id="btnShipByID" class="btn ghost grow"><i data-lucide="file-check-2"></i>出荷確認書（Ship ID）</button>
+      <div class="row gap" style="margin-top:.6rem">
+        <button id="btnShipByPO" class="btn ghost grow"><i data-lucide="file-check-2"></i>出荷確認書（注番）</button>
+        <button id="btnShipByID" class="btn ghost grow"><i data-lucide="file-check-2"></i>出荷確認書（出荷ID）</button>
       </div>
     </section>
   </main>
@@ -212,7 +206,7 @@
   <main id="pageInvoice" class="container hidden">
     <section class="card">
       <header class="row-between"><h3><i data-lucide="file-invoice"></i> 請求書作成</h3></header>
-      <div class="grid">
+      <div class="grid m1">
         <input id="inv_customer" placeholder="得意先" list="dl_tokui">
         <input id="inv_from" type="date" placeholder="期間自">
         <input id="inv_to" type="date" placeholder="期間至">
@@ -232,7 +226,7 @@
       <h3><i data-lucide="rows"></i> 請求明細（単価編集可）</h3>
       <div class="table-wrap">
         <table class="table s" id="tblInv">
-          <thead><tr><th>#</th><th>品名</th><th>品番</th><th>図番</th><th>数量</th><th>単価</th><th>金額</th><th>PO</th><th>出荷ID</th></tr></thead>
+          <thead><tr><th>#</th><th>品名</th><th>品番</th><th>図番</th><th>数量</th><th>単価</th><th>金額</th><th>注番</th><th>出荷ID</th></tr></thead>
           <tbody id="invLines"></tbody>
           <tfoot>
             <tr><td colspan="5"></td><td class="muted">小計</td><td id="invSub">0</td><td colspan="2"></td></tr>
@@ -240,6 +234,21 @@
             <tr><td colspan="5"></td><td class="muted"><b>合計</b></td><td id="invTotal"><b>0</b></td><td colspan="2"></td></tr>
           </tfoot>
         </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Charts page -->
+  <main id="pageCharts" class="container hidden">
+    <section class="card">
+      <header class="row-between"><h3><i data-lucide="pie-chart"></i> チャート</h3>
+        <div class="row gap"><button class="btn ghost" id="btnChartsReload"><i data-lucide="refresh-ccw"></i>再読込</button></div>
+      </header>
+      <div class="grid m1">
+        <div class="tile"><canvas id="chartPareto" height="220"></canvas></div>
+        <div class="tile"><canvas id="chartCustomer" height="220"></canvas></div>
+        <div class="tile"><canvas id="chartMonthly" height="220"></canvas></div>
+        <div class="tile"><canvas id="chartStock" height="220"></canvas></div>
       </div>
     </section>
   </main>
@@ -253,10 +262,15 @@
   <!-- Scan -->
   <dialog id="dlgScan" class="paper">
     <div class="body">
-      <h3>QRスキャン更新（PO: <span id="scanPO"></span>）</h3>
-      <p class="muted s">工程QRを読み取ると切替され履歴に記録されます。</p>
-      <video id="scanVideo" playsinline></video>
+      <h3>QRスキャン更新（注番: <span id="scanPO"></span>）</h3>
+      <p class="muted s">工程QRを読み取ると切替され履歴に記録されます。<br>※初回時はブラウザのカメラ許可を「許可」にしてください。</p>
+      <video id="scanVideo" playsinline muted></video>
       <canvas id="scanCanvas" class="hidden"></canvas>
+      <div class="row gap" style="margin-top:.5rem">
+        <select id="manualProc" class="grow"></select>
+        <select id="manualStatus" class="grow"></select>
+        <button id="btnManualApply" class="btn ghost"><i data-lucide="edit-3"></i>手動更新</button>
+      </div>
       <div id="scanResult" class="muted s" style="margin-top:.5rem"></div>
     </div>
     <footer class="row-end"><button class="btn ghost" id="btnScanStart"><i data-lucide="scan-line"></i>開始</button><button class="btn" id="btnScanClose"><i data-lucide="x"></i>閉じる</button></footer>
