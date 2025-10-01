@@ -2,12 +2,20 @@
   --bg:#f7f9fc; --card:#ffffff; --border:#e0e6f1; --ink:#222; --muted:#6b7a99;
   --primary:#2563eb; --primary-hover:#1d4ed8; --chip:#eff6ff;
   --radius:14px; --shadow:0 2px 6px rgba(0,0,0,0.05);
+
+  /* --- badge colors (bright) --- */
+  --st-start:#e0f2fe;     /* 生産開始 */
+  --st-hold:#fee2e2;      /* 検査保留 */
+  --st-done:#dcfce7;      /* 検査済 */
+  --st-ready:#fff7ed;     /* 出荷準備 */
+  --st-shipped:#ede9fe;   /* 出荷済 */
+  --st-ng:#ffe4e6;        /* 不良 */
+  --proc:#e9efff;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:14px/1.5 'Inter','Segoe UI',Roboto,Helvetica,Arial,sans-serif}
 .hidden{display:none!important}
-.muted{color:var(--muted)} .s{font-size:12px} .bold{font-weight:600}
-.right{text-align:right;display:inline-block;width:100%}
+.muted{color:var(--muted)} .s{font-size:12px}
 .row{display:flex;align-items:center}
 .row-between{display:flex;align-items:center;justify-content:space-between}
 .row-end{display:flex;justify-content:flex-end;gap:.5rem}
@@ -42,46 +50,71 @@ input, select, textarea{width:100%;padding:.75rem;border-radius:12px;border:1px 
 .tile{background:#fff;border:1px solid var(--border);border-radius:12px;padding:.8rem;box-shadow:var(--shadow)}
 .stat-num{font-size:28px;font-weight:700}
 .list > div{display:flex;justify-content:space-between;border-bottom:1px dashed #e6e9f2;padding:.2rem 0}
-.list.header-like > div{border-bottom:1px solid #e6e9f2;padding:.3rem 0 .4rem 0}
 
-/* table */
 .table-wrap{overflow:auto;max-height:60vh;border:1px solid var(--border);border-radius:12px;background:#fff}
 .table{width:100%;border-collapse:collapse}
-.table th,.table td{padding:.6rem;border-bottom:1px solid #edf1f7;vertical-align:middle;white-space:nowrap}
+.table th,.table td{padding:.6rem;border-bottom:1px solid #edf1f7;vertical-align:middle}
 
-/* badge umum */
-.badge{display:inline-block;padding:.2rem .55rem;border-radius:999px;font-weight:600}
+/* --- badges --- */
+.badge{display:inline-block;padding:.22rem .55rem;border-radius:12px;color:#0f172a;font-weight:600}
+.badge.st-start{background:var(--st-start)}
+.badge.st-hold{background:var(--st-hold)}
+.badge.st-done{background:var(--st-done)}
+.badge.st-ready{background:var(--st-ready)}
+.badge.st-shipped{background:var(--st-shipped)}
+.badge.st-ng{background:var(--st-ng)}
+.badge.proc{background:var(--proc)}
 
-/* warna status terang */
-.badge-status--生産開始{background:#e1f0ff;color:#09407a;border:1px solid #b8d7ff}
-.badge-status--検査保留{background:#fff3cd;color:#7a5b00;border:1px solid #ffe08a}
-.badge-status--検査済{background:#e8fde7;color:#1b5e20;border:1px solid #b8f1b7}
-.badge-status--出荷準備{background:#f3e8ff;color:#5b21b6;border:1px solid #dcc6ff}
-.badge-status--出荷済{background:#e6fffb;color:#065f46;border:1px solid #baf7ef}
-.badge-status--不良品（要リペア）{background:#ffe2e2;color:#7a0414;border:1px solid #ffb5b5}
+/* grid chip */
+.grid-chip{background:var(--chip);border:1px solid #e2e7ff;border-radius:10px;padding:.6rem;text-align:center}
+.paper{width:min(860px,96vw);border:0;padding:0;background:#fff;color:#000;border-radius:10px;box-shadow:var(--shadow)}
+.paper .body{padding:16px}
+.paper table{width:100%;border-collapse:collapse}
+.paper th,.paper td{border:1px solid #555;padding:4px 6px;font-size:12px}
 
-/* warna proses terang */
-.badge-proc{background:#eef2ff;color:#1e3a8a;border:1px solid #dbe3ff}
-.badge-proc--検査工程{background:#dcfce7;color:#065f46;border:1px solid #b7f5c9}
-.badge-proc--外注{background:#fff7ed;color:#9a3412;border:1px solid #ffdfbf}
-
-/* 操作：2 baris rapi */
-.ops-grid{display:grid;grid-template-columns:repeat(2, minmax(86px,1fr));gap:.35rem .35rem}
-.ops-grid .btn.s{padding:.35rem .5rem;font-size:12px;border-radius:10px}
-
-/* loading */
-.loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.6);backdrop-filter:saturate(1.2) blur(2px);z-index:20}
+video#scanVideo{width:100%;max-height:48vh;border-radius:12px;background:#000}
+.loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.6);backdrop-filter:saturate(1.2) blur(2px)}
 .spinner{width:36px;height:36px;border:3px solid #dbe4ff;border-top-color:#2563eb;border-radius:50%;animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 
-/* dialog */
-.paper{border:none;border-radius:14px;max-width:880px;width:calc(100% - 2rem);padding:0;box-shadow:var(--shadow)}
-.paper .body{padding:1rem 1rem 0 1rem}
-.paper footer{padding:0 1rem 1rem 1rem}
+/* 操作：2 baris rapi */
+.ops-grid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(86px,1fr));
+  gap:.35rem .35rem;
+}
+.ops-grid .btn.s{padding:.35rem .5rem;font-size:12px;border-radius:10px}
 
-/* print */
+/* ==== NEW: warna per-proses pada kotak 操作 ==== */
+.ops-box{
+  padding:.45rem;
+  border-radius:12px;
+  border:1px solid var(--ops-border, var(--border));
+  background:var(--ops-bg, #fff);
+}
+.ops-box .btn.ghost{
+  border-color:var(--ops-border, var(--border));
+}
+.ops-box .btn.ghost:hover{
+  background:rgba(255,255,255,.7);
+}
+
+/* 11 proses => 11 palet lembut */
+.ops-box.p0 { --ops-bg:#e0f2fe; --ops-border:#93c5fd; } /* レーザ加工 */
+.ops-box.p1 { --ops-bg:#dcfce7; --ops-border:#86efac; } /* 曲げ加工 */
+.ops-box.p2 { --ops-bg:#fff7ed; --ops-border:#fdba74; } /* 外枠組立 */
+.ops-box.p3 { --ops-bg:#fae8ff; --ops-border:#f0abfc; } /* シャッター組立 */
+.ops-box.p4 { --ops-bg:#fee2e2; --ops-border:#fca5a5; } /* シャッター溶接 */
+.ops-box.p5 { --ops-bg:#fef9c3; --ops-border:#fde68a; } /* コーキング */
+.ops-box.p6 { --ops-bg:#e9d5ff; --ops-border:#c4b5fd; } /* 外枠塗装 */
+.ops-box.p7 { --ops-bg:#ddf4ff; --ops-border:#93e0ff; } /* 組立（中） */
+.ops-box.p8 { --ops-bg:#e6fffb; --ops-border:#99f6e4; } /* 組立（済） */
+.ops-box.p9 { --ops-bg:#f1f5f9; --ops-border:#cbd5e1; } /* 外注 */
+.ops-box.p10{ --ops-bg:#fde68a33; --ops-border:#f59e0b; } /* 検査工程 */
+
+/* Print A4 Portrait */
 @media print{
   @page{ size:A4 portrait; margin:12mm }
-  nav, .nav, .btn, .input, .row-between > .row, .loading, #dlgScan{ display:none !important; }
+  nav, .nav, .btn, .input, .row-between > .row, .loading{ display:none !important; }
   body{ background:#fff; } .paper{ box-shadow:none; width:auto } .container{ padding:0; }
 }
