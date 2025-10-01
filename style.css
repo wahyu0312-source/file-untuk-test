@@ -106,4 +106,18 @@ video#scanVideo{width:100%;max-height:48vh;border-radius:12px;background:#000}
   body{ background:#fff; }
   .paper{ box-shadow:none; width:auto }
   .container{ padding:0; }
+  /* 出荷確認書 layout */
+.paper .ship-head, .paper .ship-lines, .paper .ship-foot{
+  width:100%; border-collapse:collapse; margin-bottom:6px;
+}
+.paper .ship-head th, .paper .ship-head td,
+.paper .ship-foot th, .paper .ship-foot td{
+  border:1px solid #333; padding:4px 6px; font-size:12px;
+}
+.paper .ship-head th{ width:80px; background:#f7f7f7; }
+.paper .ship-lines th, .paper .ship-lines td{
+  border:1px solid #333; padding:4px 6px; font-size:12px;
+}
+.paper .ship-lines thead th{ background:#f1f5ff; }
+
 }
