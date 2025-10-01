@@ -142,6 +142,25 @@ window.addEventListener('DOMContentLoaded', ()=>{
   $('#btnShipDelete').onclick = deleteShipUI;
   $('#btnShipByPO').onclick = ()=>{ const po=$('#s_po').value.trim(); if(!po) return alert('注番入力'); openShipByPO(po); };
   $('#btnShipByID').onclick = ()=>{ const id=prompt('出荷ID:'); if(!id) return; openShipByID(id.trim()); };
+// Ship Form events
+$('#btnShipFormByPO').onclick = ()=>{
+  const po=$('#s_po').value.trim();
+  if(!po) return alert('注番を入力してください');
+  openShipFormByPO(po);
+};
+$('#btnShipFormByID').onclick = ()=>{
+  const id=prompt('出荷ID:');
+  if(!id) return;
+  openShipFormByID(id.trim());
+};
+$('#btnAddShipFormLine').onclick = ()=> addShipFormLine({});
+$('#btnCloseShipForm').onclick = ()=> document.getElementById('dlgShipForm').close();
+
+// Cetak: buat halaman terlihat bersih (pakai CSS @media print)
+$('#btnPrintShipForm').onclick = ()=>{
+  // Tips: sebelum print kamu masih bisa validasi kalau perlu
+  window.print();
+};
 
   // Scan
   $('#btnScanStart').onclick = scanStart;
@@ -403,6 +422,76 @@ async function deleteOrderUI(){
   const po=$('#c_po').value.trim(); if(!po) return alert('注番入力'); if(!confirm('削除しますか？')) return;
   try{ const r=await apiPost('deleteOrder',{po_id:po,user:SESSION}); alert('削除:'+r.deleted); refreshAll(); }
   catch(e){ alert(e.message||e); }
+}
+async function openShipFormByPO(po_id){
+  try{
+    const d = await apiGet({action:'shipByPo', po_id});
+    const s = d.shipment, o=d.order;
+
+    // Header default
+    $('#f_cust').value = o['得意先']||'';
+    $('#f_carrier').value = ''; // kosong -> isi manual
+    $('#f_shipdate').value = s.scheduled_date ? new Date(s.scheduled_date).toISOString().slice(0,10) : '';
+    $('#f_delvdate').value = ''; // optional
+
+    // Reset lines
+    $('#shipFormLines').innerHTML = '';
+    addShipFormLine({
+      zuban: o['図番']||'',
+      kishu: o['品番']||'',      // "機種" → 品番（bisa diganti ke '製番号' kalau perlu）
+      hinmei: o['品名']||'',
+      qty: s.qty||0,
+      okurisaki: o['得意先']||'',
+      chui: '',
+      biko: ''
+    });
+
+    document.getElementById('dlgShipForm').showModal();
+  }catch(e){
+    alert(e.message||e);
+  }
+}
+
+async function openShipFormByID(id){
+  try{
+    const d = await apiGet({action:'shipById', ship_id:id});
+    const s = d.shipment, o=d.order;
+
+    $('#f_cust').value = o['得意先']||'';
+    $('#f_carrier').value = '';
+    $('#f_shipdate').value = s.scheduled_date ? new Date(s.scheduled_date).toISOString().slice(0,10) : '';
+    $('#f_delvdate').value = '';
+
+    $('#shipFormLines').innerHTML = '';
+    addShipFormLine({
+      zuban: o['図番']||'',
+      kishu: o['品番']||'',
+      hinmei: o['品名']||'',
+      qty: s.qty||0,
+      okurisaki: o['得意先']||'',
+      chui: '',
+      biko: ''
+    });
+
+    document.getElementById('dlgShipForm').showModal();
+  }catch(e){
+    alert(e.message||e);
+  }
+}
+
+function addShipFormLine(data){
+  const tb = document.getElementById('shipFormLines');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input class="sf zuban" value="${data?.zuban||''}"></td>
+    <td><input class="sf kishu" value="${data?.kishu||''}"></td>
+    <td><input class="sf hinmei" value="${data?.hinmei||''}"></td>
+    <td><input class="sf qty" type="number" min="0" value="${data?.qty||0}" style="width:80px"></td>
+    <td><input class="sf okurisaki" value="${data?.okurisaki||''}"></td>
+    <td><input class="sf chui" value="${data?.chui||''}"></td>
+    <td><input class="sf biko" value="${data?.biko||''}"></td>
+  `;
+  tb.appendChild(tr);
 }
 
 /* ===== Ship ===== */
