@@ -1,5 +1,5 @@
 /* ===== Config ===== */
-const API_BASE = "https://script.google.com/macros/s/AKfycbwN3oi1TLBKcydOFdSLhydqxYIyLFMyYKQr3Z7Ikors5JnRL6IsWLfeEEajcZSftKdZLw/exec"; // << GANTI (Apps Script Web App /exec)
+const API_BASE = "https://script.google.com/macros/s/AKfycbwN3oi1TLBKcydOFdSLhydqxYIyLFMyYKQr3Z7Ikors5JnRL6IsWLfeEEajcZSftKdZLw/exec"; //
 const API_KEY = ""; // optional
 const PROCESSES = ['レーザ加工','曲げ加工','外枠組立','シャッター組立','シャッター溶接','コーキング','外枠塗装','組立（組立中）','組立（組立済）','外注','検査工程'];
 const MANUAL_STATUSES = ['','生産開始','検査保留','検査済','出荷準備','出荷済','不良品（修理）'];
