@@ -9,6 +9,7 @@ const fmtDT = s=> s? new Date(s).toLocaleString(): '';
 const fmtD  = s=> s? new Date(s).toLocaleDateString(): '';
 
 let SESSION=null, ORDERS_CACHE=[];
+let PAGE = { index:1, size:50 }; // pagination
 
 /* ===== Badge helpers ===== */
 function statusClass(s){
@@ -22,6 +23,7 @@ function statusClass(s){
     default: return 'st-start';
   }
 }
+function procIndex(p){ const i = PROCESSES.indexOf(p||''); return i<0?0:i; }
 const badge = (text, cls)=> `<span class="badge ${cls}">${text??''}</span>`;
 
 /* ===== API helpers ===== */
@@ -44,38 +46,41 @@ function showLoading(v){ $('#loading').classList.toggle('hidden',!v); }
 
 /* ===== Boot ===== */
 window.addEventListener('DOMContentLoaded', ()=>{
+  // Nav: pindah halaman, tidak ada alert lagi
   $('#btnToDash').onclick = ()=>show('pageDash');
-  $('#btnToSales').onclick= ()=>alert('Sales page omitted');
-  $('#btnToPlan').onclick = ()=>alert('Plan page omitted');
-  $('#btnToShip').onclick = ()=>alert('Ship page omitted');
-  $('#btnToInvoice').onclick = ()=>alert('Invoice page omitted');
-  $('#btnToCharts').onclick = ()=>alert('Charts page omitted');
+  $('#btnToSales').onclick= ()=>show('pageSales');
+  $('#btnToPlan').onclick = ()=>show('pagePlan');
+  $('#btnToShip').onclick = ()=>show('pageShip');
+  $('#btnToInvoice').onclick = ()=>show('pageInvoice');
+  $('#btnToCharts').onclick = ()=>show('pageCharts');
 
   $('#btnLogin').onclick = onLogin;
   $('#btnNewUser').onclick = addUserFromLoginUI;
   $('#btnLogout').onclick = ()=>{ SESSION=null; localStorage.removeItem('erp_session'); location.reload(); };
   $('#btnChangePass').onclick = changePasswordUI;
 
+  // dashboard controls
   $('#btnRefresh').onclick = refreshAll;
-  $('#searchQ').addEventListener('input', renderOrders);
   $('#btnExportOrders').onclick = exportOrdersCSV;
   $('#btnExportShip').onclick = exportShipCSV;
 
+  // search + debounce (anti-lemot)
+  let t=null;
+  $('#searchQ').addEventListener('input', ()=>{
+    clearTimeout(t); t=setTimeout(()=>{ PAGE.index=1; renderOrders(); }, 250);
+  });
+
+  // pagination control
+  $('#pgPrev').onclick=()=>{ if(PAGE.index>1){ PAGE.index--; renderOrdersPage(); } };
+  $('#pgNext').onclick=()=>{ const max = Math.max(1, Math.ceil(ORDERS_CACHE.length/PAGE.size)); if(PAGE.index<max){ PAGE.index++; renderOrdersPage(); } };
+
   const saved=localStorage.getItem('erp_session');
   if(saved){ SESSION=JSON.parse(saved); enter(); } else show('authView');
-
-  if(window.lucide){ lucide.createIcons(); }
 });
 
 function show(id){
-  ['authView','pageDash'].forEach(x=>document.getElementById(x)?.classList.add('hidden'));
+  ['authView','pageDash','pageSales','pagePlan','pageShip','pageInvoice','pageCharts'].forEach(x=>document.getElementById(x)?.classList.add('hidden'));
   document.getElementById(id)?.classList.remove('hidden');
-  if(window.lucide){ lucide.createIcons(); }
-}
-function enter(){
-  $('#userInfo').textContent = `${SESSION.full_name}・${SESSION.department}`;
-  ['btnLogout','btnChangePass','btnToDash','btnToSales','btnToPlan','btnToShip','btnToInvoice','btnShowStationQR','btnToCharts'].forEach(id=>$('#'+id).classList.remove('hidden'));
-  show('pageDash'); refreshAll();
 }
 
 /* ===== Auth ===== */
@@ -84,6 +89,11 @@ async function onLogin(){
   try{
     const r=await apiPost('login',{username:u,password:p}); SESSION=r; localStorage.setItem('erp_session',JSON.stringify(r)); enter();
   }catch(e){ alert(e.message||e); }
+}
+function enter(){
+  $('#userInfo').textContent = `${SESSION.full_name}・${SESSION.department}`;
+  ['btnLogout','btnChangePass','btnToDash','btnToSales','btnToPlan','btnToShip','btnToInvoice','btnShowStationQR','btnToCharts'].forEach(id=>$('#'+id).classList.remove('hidden'));
+  show('pageDash'); refreshAll();
 }
 async function addUserFromLoginUI(){
   if(!SESSION) return alert('ログインしてください');
@@ -120,80 +130,95 @@ async function refreshAll(){
     `).join('');
 
     await renderOrders();
-    await loadFinishedStock(); // NEW: table rendering
+    await loadFinishedStock();
   }catch(e){ console.error(e); }
 }
 
-/* 生産一覧 */
+/* ===== 生産一覧 ===== */
 async function listOrders(){ const q=$('#searchQ').value.trim(); const rows=await apiGet({action:'listOrders',q}); ORDERS_CACHE=rows; return rows; }
-async function renderOrders(){
-  const rows=await listOrders();
+async function renderOrders(){ await listOrders(); renderOrdersPage(); }
+
+function renderOrdersPage(){
+  const start = (PAGE.index-1)*PAGE.size;
+  const end = Math.min(start+PAGE.size, ORDERS_CACHE.length);
+  $('#pgInfo').textContent = `${start+1}-${end} / ${ORDERS_CACHE.length}`;
+
+  const rows = ORDERS_CACHE.slice(start,end);
   $('#tbOrders').innerHTML = rows.map(r=>{
-    const pIdx = Math.max(0, PROCESSES.indexOf(r.current_process||''));
-    const pClass = `p${pIdx}`;
+    const pIdx = procIndex(r.current_process);
+    const procCls = `p${pIdx}`;
+    const urgent = String(r.urgent||'')==='true';
+    const procBadge = `<span class="badge proc ${procCls}">${r.current_process||''}</span>`;
+    const urgentBadge = urgent ? `<span class="badge urgent">至急</span>` : '';
     return `
-    <tr>
-      <td><b>${r.po_id}</b></td>
+    <tr class="${urgent?'urgent':''}">
+      <td><b>${r.po_id}</b> ${urgentBadge}</td>
       <td>${r['得意先']||''}</td>
       <td>${r['製番号']||''}</td>
       <td>${r['品名']||''}</td>
       <td>${r['品番']||''}</td>
       <td>${r['図番']||''}</td>
       <td>${badge(r.status, 'st '+statusClass(r.status))}</td>
-      <td>${badge(r.current_process||'', 'proc')}</td>
+      <td>${procBadge}</td>
       <td class="s muted">${fmtDT(r.updated_at)}</td>
       <td class="s muted">${r.updated_by||''}</td>
       <td class="s">
-        <div class="ops-grid ops-box ${pClass}">
+        <div class="ops-grid ops-box p${pIdx}">
           <button class="btn ghost s" onclick="openTicket('${r.po_id}')"><i data-lucide="file-badge-2"></i>票</button>
           <button class="btn ghost s" onclick="openHistory('${r.po_id}')"><i data-lucide="history"></i>履歴</button>
           <button class="btn ghost s" onclick="openShipByPO('${r.po_id}')"><i data-lucide="file-check-2"></i>出荷票</button>
-          <button class="btn ghost s" onclick="alert('更新はスキャン/権限から')"><i data-lucide="refresh-ccw"></i>更新</button>
+          <button class="btn ghost s" onclick="toggleUrgent('${r.po_id}',${urgent})"><i data-lucide="alert-triangle"></i>${urgent?'解除':'至急'}</button>
         </div>
       </td>
     </tr>`;
   }).join('');
-  if(window.lucide){ lucide.createIcons(); }
+  // re-render icons hanya sekali di halaman ini
+  if(window.lucide){ lucide.createIcons({attrs:{}}); }
 }
 
-/* ===== 完成品在庫（明細）: tampil seperti 生産一覧 ===== */
+async function toggleUrgent(po_id, now){
+  try{
+    await apiPost('updateOrder',{po_id,updates:{urgent:!now},user:SESSION});
+    await renderOrders(); // refresh list
+  }catch(e){ alert(e.message||e); }
+}
+
+/* ===== 完成品在庫（明細） ===== */
 async function loadFinishedStock(){
   try{
     const rows = await apiGet({action:'finishedStockList'});
     const tb = $('#tbFinished');
     if(!rows.length){
-      tb.innerHTML = `<tr><td colspan="10" class="muted">（現在なし）</td></tr>`;
+      tb.innerHTML = `<tr><td colspan="11" class="muted">（現在なし）</td></tr>`;
     }else{
       tb.innerHTML = rows.map(r=>{
-        const pIdx = Math.max(0, PROCESSES.indexOf(r['現工程']||''));
-        const pClass = `p${pIdx}`;
+        const pIdx = procIndex(r['現工程']);
+        const procBadge = `<span class="badge proc p${pIdx}">${r['現工程']||''}</span>`;
+        const urgent = r['至急'] ? `<span class="badge urgent">至急</span>`:'';
         return `
-          <tr>
-            <td><b>${r.po_id}</b></td>
+          <tr class="${r['至急']?'urgent':''}">
+            <td><b>${r.po_id}</b> ${urgent}</td>
             <td>${r['得意先']||''}</td>
             <td>${r['品名']||''}</td>
             <td>${r['品番']||''}</td>
             <td>${r['図番']||''}</td>
             <td>${r['数量']||0}</td>
             <td>${badge(r['状態']||'', 'st '+statusClass(r['状態']))}</td>
-            <td>${badge(r['現工程']||'', 'proc')}</td>
+            <td>${procBadge}</td>
             <td class="s muted">${fmtDT(r['更新日時'])}</td>
             <td class="s muted">${r['更新者']||''}</td>
-          </tr>
-          <tr class="hidden"></tr>
-        `;
+          </tr>`;
       }).join('');
     }
-    // export CSV
     $('#btnExportFinished').onclick = ()=> downloadCSV('finished_stock_detail.csv', rows);
     if(window.lucide){ lucide.createIcons(); }
   }catch(e){
     console.warn('finishedStockList error:', e);
-    $('#tbFinished').innerHTML = `<tr><td colspan="10" class="muted">読込エラー</td></tr>`;
+    $('#tbFinished').innerHTML = `<tr><td colspan="11" class="muted">読込エラー</td></tr>`;
   }
 }
 
-/* ===== Docs (minimal) ===== */
+/* ===== Docs ===== */
 async function openTicket(po_id){
   try{
     const o=await apiGet({action:'ticket',po_id});
