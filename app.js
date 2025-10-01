@@ -167,7 +167,8 @@ $('#btnPrintShipForm').onclick = ()=>{
   $('#btnScanClose').onclick = scanClose;
   $('#btnManualApply').onclick = manualApply;
   fillManualSelectors();
-
+$('#btnExportFinished').onclick = exportFinishedCSV;
+  
   // Invoice
   $('#btnInvPreview').onclick = previewInvoiceUI;
   $('#btnInvCreate').onclick = createInvoiceUI;
@@ -642,6 +643,38 @@ function downloadFile(name,content){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([content],{type:'text/csv'}));
   a.download=name; a.click();
+}
+async function renderFinishedDetail(){
+  try{
+    const rows = await apiGet({action:'finishedStockList'});
+    const div = $('#listFinished');
+    if(!rows.length){
+      div.innerHTML = '<div class="muted">なし</div>';
+      return;
+    }
+    div.innerHTML = rows.slice(0,50).map(r=>`
+      <div>
+        <span><b>${r.po_id}</b> / ${r['品名']||''}</span>
+        <span class="muted">${r['図番']||''}</span>
+      </div>
+      <div class="muted">
+        ${r['現工程']||''}・${r['状態']||''}・${r['更新者']||''}・${r['更新日時']? new Date(r['更新日時']).toLocaleString():''}
+      </div>
+    `).join('');
+    if(window.lucide) lucide.createIcons();
+  }catch(e){
+    console.warn(e);
+  }
+}
+
+async function exportFinishedCSV(){
+  const rows = await apiGet({action:'finishedStockList'});
+  if(!rows || !rows.length){ downloadFile('finished_stock.csv',''); return; }
+  const headers = Object.keys(rows[0]);
+  const csv = [headers.join(',')].concat(
+    rows.map(r=> headers.map(h=> String(r[h]??'').replaceAll('"','""')).map(v=>`"${v}"`).join(','))
+  ).join('\n');
+  downloadFile('finished_stock.csv', csv);
 }
 
 /* ===== Station QR ===== */
