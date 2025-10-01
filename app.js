@@ -1,6 +1,6 @@
 /* ===== Config ===== */
-const API_BASE = "https://script.google.com/macros/s/AKfycbwN3oi1TLBKcydOFdSLhydqxYIyLFMyYKQr3Z7Ikors5JnRL6IsWLfeEEajcZSftKdZLw/exec"; // << GANTI ke WebApp Anda
-const API_KEY = ""; // optional
+const API_BASE = "https://script.google.com/macros/s/AKfycbwN3oi1TLBKcydOFdSLhydqxYIyLFMyYKQr3Z7Ikors5JnRL6IsWLfeEEajcZSftKdZLw/exec"; // ganti milik Anda
+const API_KEY = "";
 const PROCESSES = ['レーザ加工','曲げ加工','外枠組立','シャッター組立','シャッター溶接','コーキング','外枠塗装','組立（組立中）','組立（組立済）','外注','検査工程'];
 
 const $ = s=>document.querySelector(s);
@@ -9,9 +9,9 @@ const fmtDT = s=> s? new Date(s).toLocaleString(): '';
 const fmtD  = s=> s? new Date(s).toLocaleDateString(): '';
 
 let SESSION=null, ORDERS_CACHE=[];
-let CHARTS = {}; // << pastikan terdefinisi lebih awal
+let CHARTS = {}; // avoid "before initialization"
 
-/* ===== API helpers with spinner ===== */
+/* ===== API helpers ===== */
 async function apiPost(action, body){
   showLoading(true);
   try{
@@ -31,7 +31,6 @@ function showLoading(v){ $('#loading').classList.toggle('hidden',!v); }
 
 /* ===== Boot ===== */
 window.addEventListener('DOMContentLoaded', ()=>{
-  // Nav
   $('#btnToDash').onclick = ()=>show('pageDash');
   $('#btnToSales').onclick= ()=>alert('Sales page omitted in this minimal bundle');
   $('#btnToPlan').onclick = ()=>alert('Plan page omitted in this minimal bundle');
@@ -39,94 +38,75 @@ window.addEventListener('DOMContentLoaded', ()=>{
   $('#btnToInvoice').onclick = ()=>alert('Invoice page omitted in this minimal bundle');
   $('#btnToCharts').onclick = ()=>alert('Charts page omitted in this minimal bundle');
 
-  // Auth
   $('#btnLogin').onclick = onLogin;
   $('#btnNewUser').onclick = addUserFromLoginUI;
   $('#btnLogout').onclick = ()=>{ SESSION=null; localStorage.removeItem('erp_session'); location.reload(); };
   $('#btnChangePass').onclick = changePasswordUI;
 
-  // Dashboard
   $('#btnRefresh').onclick = refreshAll;
   $('#searchQ').addEventListener('input', renderOrders);
   $('#btnExportOrders').onclick = exportOrdersCSV;
   $('#btnExportShip').onclick = exportShipCSV;
 
-  // Restore session
   const saved=localStorage.getItem('erp_session');
   if(saved){ SESSION=JSON.parse(saved); enter(); } else show('authView');
 
   if(window.lucide){ lucide.createIcons(); }
 });
 
-function show(id){
-  ['authView','pageDash'].forEach(x=>document.getElementById(x)?.classList.add('hidden'));
-  document.getElementById(id)?.classList.remove('hidden');
-  if(window.lucide){ lucide.createIcons(); }
-}
+function show(id){ ['authView','pageDash'].forEach(x=>document.getElementById(x)?.classList.add('hidden')); document.getElementById(id)?.classList.remove('hidden'); if(window.lucide){ lucide.createIcons(); } }
 function enter(){
   $('#userInfo').textContent = `${SESSION.full_name}・${SESSION.department}`;
   ['btnLogout','btnChangePass','btnToDash','btnToSales','btnToPlan','btnToShip','btnToInvoice','btnShowStationQR','btnToCharts'].forEach(id=>$('#'+id).classList.remove('hidden'));
   if (SESSION.role==='admin' || SESSION.department==='生産技術') $('#btnAddUserWeb').classList.remove('hidden'); else $('#btnAddUserWeb').classList.add('hidden');
-  $('#btnAddUserWeb').onclick = ()=>alert('Add-user modal omitted in minimal bundle');
+  $('#btnAddUserWeb').onclick = ()=>alert('Add-user modal omitted');
   show('pageDash'); refreshAll();
 }
 
 /* ===== Auth ===== */
-async function onLogin(){
-  const u=$('#inUser').value.trim(), p=$('#inPass').value.trim();
-  try{
-    const r=await apiPost('login',{username:u,password:p});
-    SESSION=r; localStorage.setItem('erp_session',JSON.stringify(r)); enter();
-  }catch(e){ alert(e.message||e); }
-}
+async function onLogin(){ const u=$('#inUser').value.trim(), p=$('#inPass').value.trim(); try{ const r=await apiPost('login',{username:u,password:p}); SESSION=r; localStorage.setItem('erp_session',JSON.stringify(r)); enter(); }catch(e){ alert(e.message||e); } }
 async function addUserFromLoginUI(){
   if(!SESSION) return alert('ログインしてください');
   if(!(SESSION.role==='admin'||SESSION.department==='生産技術')) return alert('権限不足（生産技術）');
-  const payload={
-    username:$('#nuUser').value.trim(), password:$('#nuPass').value.trim(), full_name:$('#nuName').value.trim(),
-    department:$('#nuDept').value, role:$('#nuRole').value
-  };
+  const payload={ username:$('#nuUser').value.trim(), password:$('#nuPass').value.trim(), full_name:$('#nuName').value.trim(), department:$('#nuDept').value, role:$('#nuRole').value };
   if(!payload.username||!payload.password||!payload.full_name) return alert('必須項目');
   try{ await apiPost('createUser',{user:SESSION,payload}); alert('作成しました'); }catch(e){ alert(e.message||e); }
 }
 async function changePasswordUI(){
   if(!SESSION) return alert('ログインしてください');
-  const oldPass=prompt('旧パスワード:'); if(oldPass===null) return;
-  const newPass=prompt('新パスワード:'); if(newPass===null) return;
-  try{
-    await apiPost('changePassword',{user:SESSION,oldPass,newPass});
-    alert('変更しました。再ログインしてください。'); SESSION=null; localStorage.removeItem('erp_session'); location.reload();
-  }catch(e){ alert(e.message||e); }
+  const oldPass=prompt('旧パスワード:'); if(oldPass===null) return; const newPass=prompt('新パスワード:'); if(newPass===null) return;
+  try{ await apiPost('changePassword',{user:SESSION,oldPass,newPass}); alert('変更しました。再ログインしてください。'); SESSION=null; localStorage.removeItem('erp_session'); location.reload(); }catch(e){ alert(e.message||e); }
 }
 
 /* ===== Dashboard ===== */
 async function refreshAll(){
   try{
     const s=await apiGet({action:'stock'});
-    $('#statFinished').textContent=s.finishedStock;
-    $('#statReady').textContent=s.ready; $('#statShipped').textContent=s.shipped;
+    $('#statFinished').textContent=s.finishedStock; $('#statReady').textContent=s.ready; $('#statShipped').textContent=s.shipped;
 
     const today=await apiGet({action:'todayShip'});
     $('#listToday').innerHTML = today.length? today.map(r=>`
-      <div><span>${r.po_id}</span><span>${fmtD(r.scheduled_date)}・${r.qty}</span></div>
-    `).join(''):'<div class="muted">本日予定なし</div>';
+      <div><span>${r.po_id}</span><span>${fmtD(r.scheduled_date)}・${r.qty}</span></div>`).join(''):'<div class="muted">本日予定なし</div>';
 
     const loc=await apiGet({action:'locSnapshot'});
     $('#gridProc').innerHTML = PROCESSES.map(p=>`
-      <div class="grid-chip"><div class="muted s">${p}</div><div class="h">${loc[p]||0}</div></div>
-    `).join('');
+      <div class="grid-chip"><div class="muted s">${p}</div><div class="h">${loc[p]||0}</div></div>`).join('');
 
-    await renderOrders();        // 生産一覧
-    await loadFinishedStock();   // 完成品在庫（明細）
-
+    await renderOrders();
+    await loadFinishedStock();
   }catch(e){ console.error(e); }
 }
 
-/* 生産一覧 */
-async function listOrders(){
-  const q=$('#searchQ').value.trim();
-  const rows=await apiGet({action:'listOrders',q}); ORDERS_CACHE=rows; return rows;
+/* ===== Helpers: badge classes ===== */
+function statusClass(s){ return 'badge badge-status--'+(s||'').replaceAll(' ',''); }
+function procClass(p){
+  const base='badge badge-proc';
+  if(!p) return base;
+  return base+' badge-proc--'+p;
 }
+
+/* ===== 生産一覧 ===== */
+async function listOrders(){ const q=$('#searchQ').value.trim(); const rows=await apiGet({action:'listOrders',q}); ORDERS_CACHE=rows; return rows; }
 async function renderOrders(){
   const rows=await listOrders();
   $('#tbOrders').innerHTML = rows.map(r=>`
@@ -137,8 +117,8 @@ async function renderOrders(){
       <td>${r['品名']||''}</td>
       <td>${r['品番']||''}</td>
       <td>${r['図番']||''}</td>
-      <td><span class="badge">${r.status}</span></td>
-      <td>${r.current_process||''}</td>
+      <td><span class="${statusClass(r.status)}">${r.status}</span></td>
+      <td><span class="${procClass(r.current_process)}">${r.current_process||''}</span></td>
       <td class="s muted">${fmtDT(r.updated_at)}</td>
       <td class="s muted">${r.updated_by||''}</td>
       <td class="s">
@@ -149,12 +129,11 @@ async function renderOrders(){
           <button class="btn ghost s" onclick="alert('更新はスキャン/権限から')"><i data-lucide="refresh-ccw"></i>更新</button>
         </div>
       </td>
-    </tr>
-  `).join('');
+    </tr>`).join('');
   if(window.lucide){ lucide.createIcons(); }
 }
 
-/* 完成品在庫（明細） */
+/* ===== 完成品在庫（明細） ===== */
 async function loadFinishedStock(){
   try{
     const rows = await apiGet({action:'finishedStockList'});
@@ -165,9 +144,8 @@ async function loadFinishedStock(){
       el.innerHTML = rows.map(r=>`
         <div>
           <span><b>${r.po_id}</b>・${r['得意先']||''}</span>
-          <span>${r['品名']||''} ／ ${r['図番']||''}</span>
-        </div>
-      `).join('');
+          <span class="right">${r['品名']||''} ／ ${r['図番']||''} ・ <b>${r['数量']||0}</b></span>
+        </div>`).join('');
     }
     $('#btnExportFinished').onclick = ()=> downloadCSV('finished_stock_detail.csv', rows);
   }catch(e){
@@ -176,7 +154,7 @@ async function loadFinishedStock(){
   }
 }
 
-/* ===== Docs (minimal) ===== */
+/* ===== Docs minimal ===== */
 async function openTicket(po_id){
   try{
     const o=await apiGet({action:'ticket',po_id});
@@ -216,13 +194,13 @@ async function openHistory(po_id){
     const logs=await apiGet({action:'history',po_id});
     const html = logs.length? `
       <table><thead><tr><th>時刻</th><th>旧状態</th><th>新状態</th><th>旧工程</th><th>新工程</th><th>更新者</th><th>備考</th></tr></thead>
-      <tbody>${logs.map(l=>`<tr><td>${fmtDT(l.timestamp)}</td><td>${l.prev_status||''}</td><td>${l.new_status||''}</td><td>${l.prev_process||''}</td><td>${l.new_process||''}</td><td>${l.updated_by||''}</td><td>${l.note||''}</td></tr>`).join('')}</tbody>
-      </table>` : '<div class="muted">履歴なし</div>';
+      <tbody>${logs.map(l=>`<tr><td>${fmtDT(l.timestamp)}</td><td>${l.prev_status||''}</td><td>${l.new_status||''}</td><td>${l.prev_process||''}</td><td>${l.new_process||''}</td><td>${l.updated_by||''}</td><td>${l.note||''}</td></tr>`).join('')}</tbody></table>`
+    : '<div class="muted">履歴なし</div>';
     $('#histBody').innerHTML=html; document.getElementById('dlgHistory').showModal();
   }catch(e){ alert(e.message||e); }
 }
 
-/* ===== Export helpers ===== */
+/* ===== Export ===== */
 async function exportOrdersCSV(){ const rows=await apiGet({action:'listOrders'}); downloadCSV('orders.csv',rows); }
 async function exportShipCSV(){ const rows=await apiGet({action:'todayShip'}); downloadCSV('ship_today.csv',rows); }
 function downloadCSV(name,rows){
