@@ -41,8 +41,9 @@ input, select, textarea{width:100%;padding:.75rem;border-radius:12px;border:1px 
 .table-wrap{overflow:auto;max-height:60vh;border:1px solid var(--border);border-radius:12px;background:#fff}
 .table{width:100%;border-collapse:collapse}
 .table th,.table td{padding:.6rem;border-bottom:1px solid #edf1f7}
+
+/* Badge status */
 .badge{display:inline-block;padding:.2rem .5rem;border-radius:10px;background:var(--chip);color:#1b2141;border:1px solid #e2e7ff}
-/* Badge warna status */
 .badge.ok    { background:#e8f9ef; color:#166534; border-color:#bbf7d0; }
 .badge.info  { background:#eef6ff; color:#1d4ed8; border-color:#c7d2fe; }
 .badge.warn  { background:#fff7ed; color:#9a3412; border-color:#fed7aa; }
@@ -51,10 +52,10 @@ input, select, textarea{width:100%;padding:.75rem;border-radius:12px;border:1px 
 .badge.ng    { background:#fef2f2; color:#991b1b; border-color:#fecaca; }
 .badge.muted { background:#f3f4f6; color:#374151; border-color:#e5e7eb; }
 
+/* Grid proses dengan highlight */
 .grid-chip{border-radius:12px;padding:.6rem;text-align:center;border:1px solid #e2e8f0}
 .grid-chip .s{opacity:.9}
 .grid-chip .h{font-size:18px;font-weight:700}
-/* Warna per-proses (highlight) */
 .proc{background:#f8fafc}
 .proc.laser   { background:#eef2ff; border-color:#c7d2fe; }
 .proc.bend    { background:#ecfeff; border-color:#a5f3fc; }
@@ -77,10 +78,11 @@ video#scanVideo{width:100%;max-height:48vh;border-radius:12px;background:#000}
 .spinner{width:36px;height:36px;border:3px solid #dbe4ff;border-top-color:#2563eb;border-radius:50%;animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 
-/* Print A4 Portrait */
+/* Print */
 @media print{
   @page{ size:A4 portrait; margin:12mm }
   nav, .nav, .btn, .input, .row-between > .row, .loading{ display:none !important; }
   body{ background:#fff; }
   .paper{ box-shadow:none; width:auto }
   .container{ padding:0; }
+}
