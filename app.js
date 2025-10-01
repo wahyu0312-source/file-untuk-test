@@ -1,5 +1,5 @@
 /* ===== Config ===== */
-const API_BASE = "https://script.google.com/macros/s/AKfycbwN3oi1TLBKcydOFdSLhydqxYIyLFMyYKQr3Z7Ikors5JnRL6IsWLfeEEajcZSftKdZLw/exec"; // GANTI dgn URL /exec terbaru
+const API_BASE = "https://script.google.com/macros/s/AKfycbwN3oi1TLBKcydOFdSLhydqxYIyLFMyYKQr3Z7Ikors5JnRL6IsWLfeEEajcZSftKdZLw/exec"; // GANTI ke /exec terbaru
 const API_KEY = ""; // optional
 const PROCESSES = ['レーザ加工','曲げ加工','外枠組立','シャッター組立','シャッター溶接','コーキング','外枠塗装','組立（組立中）','組立（組立済）','外注','検査工程'];
 const MANUAL_STATUSES = ['','生産開始','検査保留','検査済','出荷準備','出荷済','不良品（要リペア）'];
@@ -20,12 +20,16 @@ const $ = s=>document.querySelector(s);
 const $$ = s=>document.querySelectorAll(s);
 const fmtDT = s=> s? new Date(s).toLocaleString(): '';
 const fmtD = s=> s? new Date(s).toLocaleDateString(): '';
-let SESSION=null, CURRENT_PO=null, scanStream=null, scanTimer=null;
+let SESSION=null, CURRENT_PO=null;
+
+let scanStream=null, scanTimer=null;
+let ZX_READER=null, ZX_STOP=null;
+
 let INV_PREVIEW={info:null, lines:[], inv_id:''};
 let ORDERS_CACHE=[];
 
 /* ===== Helpers: Status & Process classes ===== */
-function statusClass(s) {
+function statusClass(s){
   switch (s) {
     case '生産開始': return 'ok';
     case '検査保留': return 'hold';
@@ -50,30 +54,50 @@ function procClass(p){
   if(p==='検査工程') return 'inspect';
   return '';
 }
+function parseCSV(text){
+  const rows=[], curInit=()=>({cur:[],field:'',inQ:false}), st=curInit();
+  for(let i=0;i<text.length;i++){
+    const ch=text[i], nx=text[i+1];
+    if(st.inQ){
+      if(ch==='"' && nx==='"'){ st.field+='"'; i++; }
+      else if(ch==='"'){ st.inQ=false; }
+      else st.field+=ch;
+    }else{
+      if(ch==='"') st.inQ=true;
+      else if(ch===','){ st.cur.push(st.field.trim()); st.field=''; }
+      else if(ch==='\n' || ch==='\r'){
+        if(st.field.length || st.cur.length){ st.cur.push(st.field.trim()); rows.push(st.cur); st.cur=[]; st.field=''; }
+        if(ch==='\r' && nx==='\n') i++;
+      }else st.field+=ch;
+    }
+  }
+  if(st.field.length || st.cur.length){ st.cur.push(st.field.trim()); rows.push(st.cur); }
+  return rows;
+}
+function csvToObjects(text){
+  const rows=parseCSV(text); if(!rows.length) return [];
+  const headers=rows[0].map(h=>h.trim());
+  return rows.slice(1).filter(r=>r.join('').trim()!=='').map(r=>{
+    const o={}; headers.forEach((h,i)=> o[h]=r[i]??''); return o;
+  });
+}
 
-/* ===== API helpers with spinner ===== */
+/* ===== API helpers ===== */
 async function apiPost(action, body){
-  showLoading(true);
+  $('#loading').classList.remove('hidden');
   try{
-    const payload={action,...body};
-    if(API_KEY) payload.apiKey=API_KEY;
+    const payload={action,...body}; if(API_KEY) payload.apiKey=API_KEY;
     const res=await fetch(API_BASE,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
-    const j=await res.json();
-    if(!j.ok) throw new Error(j.error);
-    return j.data;
-  }finally{ showLoading(false); }
+    const j=await res.json(); if(!j.ok) throw new Error(j.error); return j.data;
+  }finally{ $('#loading').classList.add('hidden'); }
 }
 async function apiGet(params){
-  showLoading(true);
+  $('#loading').classList.remove('hidden');
   try{
     const url=API_BASE+'?'+new URLSearchParams(params).toString();
-    const res=await fetch(url);
-    const j=await res.json();
-    if(!j.ok) throw new Error(j.error);
-    return j.data;
-  }finally{ showLoading(false); }
+    const res=await fetch(url); const j=await res.json(); if(!j.ok) throw new Error(j.error); return j.data;
+  }finally{ $('#loading').classList.add('hidden'); }
 }
-function showLoading(v){ $('#loading').classList.toggle('hidden',!v); }
 
 /* ===== Boot ===== */
 window.addEventListener('DOMContentLoaded', ()=>{
@@ -131,15 +155,76 @@ window.addEventListener('DOMContentLoaded', ()=>{
   $('#btnInvPrint').onclick = ()=>window.print();
   $('#btnInvCSV').onclick = exportInvoiceCSV;
 
-  // Charts page
-  $('#btnChartsReload').onclick = renderChartsPage;
-
   // Restore
   const saved=localStorage.getItem('erp_session');
   if(saved){ SESSION=JSON.parse(saved); enter(); } else show('authView');
 
   if(window.lucide){ lucide.createIcons(); }
 });
+// Sales import
+$('#btnSalesImport').onclick = ()=> $('#fileSalesCSV').click();
+$('#fileSalesCSV').onchange = async (e)=>{
+  const f=e.target.files?.[0]; if(!f) return;
+  const rows=csvToObjects(await f.text());
+  if(!rows.length) return alert('CSV kosong.');
+  try{
+    const payload = rows.map(r=>({
+      '受注日': r['受注日']||'',
+      '得意先': r['得意先']||'',
+      '品名':   r['品名']||'',
+      '品番':   r['品番']||'',
+      '図番':   r['図番']||'',
+      '製番号': r['製番号']||'',
+      '数量':   r['数量']||'0',
+      '希望納期': r['希望納期']||'',
+      '備考':   r['備考']||''
+    }));
+    await apiPost('bulkCreateSalesOrders',{user:SESSION, rows:payload});
+    alert(`Import Sales selesai: ${payload.length} baris`);
+    renderSales();
+  }catch(err){ alert(err.message||err); }
+};
+
+// Plan import
+$('#btnPlanImport').onclick = ()=> $('#filePlanCSV').click();
+$('#filePlanCSV').onchange = async (e)=>{
+  const f=e.target.files?.[0]; if(!f) return;
+  const rows=csvToObjects(await f.text());
+  if(!rows.length) return alert('CSV kosong.');
+  try{
+    const payload = rows.map(r=>({
+      '通知書番号': r['通知書番号']||'',
+      '得意先':     r['得意先']||'',
+      '得意先品番': r['得意先品番']||'',
+      '製番号':     r['製番号']||'',
+      '品名':       r['品名']||'',
+      '品番':       r['品番']||'',
+      '図番':       r['図番']||'',
+      '管理No':     r['管理No']||''
+    }));
+    const res=await apiPost('bulkCreateOrders',{user:SESSION, rows:payload});
+    alert(`Import Plan selesai: ${res.created||payload.length} baris`);
+    refreshAll();
+  }catch(err){ alert(err.message||err); }
+};
+
+// Ship import
+$('#btnShipImport').onclick = ()=> $('#fileShipCSV').click();
+$('#fileShipCSV').onchange = async (e)=>{
+  const f=e.target.files?.[0]; if(!f) return;
+  const rows=csvToObjects(await f.text());
+  if(!rows.length) return alert('CSV kosong.');
+  try{
+    const payload = rows.map(r=>({
+      po_id: (r['po_id']||'').trim(),
+      scheduled_date: r['scheduled_date']||'',
+      qty: r['qty']||'0'
+    })).filter(x=>x.po_id && x.scheduled_date);
+    const res=await apiPost('bulkScheduleShipments',{user:SESSION, rows:payload});
+    alert(`Import Ship selesai: ${res.created||payload.length} baris`);
+    refreshAll(true);
+  }catch(err){ alert(err.message||err); }
+};
 
 function show(id){
   ['authView','pageDash','pageSales','pagePlan','pageShip','pageInvoice','pageCharts'].forEach(x=>document.getElementById(x)?.classList.add('hidden'));
@@ -161,12 +246,8 @@ async function onLogin(){
   const u=$('#inUser').value.trim(), p=$('#inPass').value.trim();
   try{
     const r=await apiPost('login',{username:u,password:p});
-    SESSION=r;
-    localStorage.setItem('erp_session',JSON.stringify(r));
-    enter();
-  }catch(e){
-    alert('LOGIN ERROR: '+(e.message||e));
-  }
+    SESSION=r; localStorage.setItem('erp_session',JSON.stringify(r)); enter();
+  }catch(e){ alert('LOGIN ERROR: '+(e.message||e)); }
 }
 async function addUserFromLoginUI(){
   if(!SESSION) return alert('ログインしてください');
@@ -191,25 +272,25 @@ async function loadMasters(){
   try{
     const m=await apiGet({action:'masters',types:'得意先,品名,品番,図番'});
     const fill=(id,arr)=> $(id).innerHTML=(arr||[]).map(v=>`<option value="${v}"></option>`).join('');
-    fill('#dl_tokui',m['得意先']);
-    fill('#dl_hinmei',m['品名']);
-    fill('#dl_hinban',m['品番']);
-    fill('#dl_zuban',m['図番']);
+    fill('#dl_tokui',m['得意先']); fill('#dl_hinmei',m['品名']); fill('#dl_hinban',m['品番']); fill('#dl_zuban',m['図番']);
   }catch(e){ console.warn(e); }
 }
 
 /* ===== Dashboard ===== */
 async function refreshAll(keep=false){
   try{
-    const s=await apiGet({action:'stock'});
+    const [s,today,loc] = await Promise.all([
+      apiGet({action:'stock'}),
+      apiGet({action:'todayShip'}),
+      apiGet({action:'locSnapshot'})
+    ]);
+
     $('#statFinished').textContent=s.finishedStock;
     $('#statReady').textContent=s.ready;
     $('#statShipped').textContent=s.shipped;
 
-    const today=await apiGet({action:'todayShip'});
     $('#listToday').innerHTML = today.length? today.map(r=>`<div><span>${r.po_id}</span><span>${fmtD(r.scheduled_date)}・${r.qty}</span></div>`).join(''):'<div class="muted">本日予定なし</div>';
 
-    const loc=await apiGet({action:'locSnapshot'});
     $('#gridProc').innerHTML = PROCESSES.map(p=> `
       <div class="grid-chip proc ${procClass(p)}">
         <div class="muted s">${p}</div>
@@ -225,9 +306,10 @@ async function refreshAll(keep=false){
 async function listOrders(){
   const q=$('#searchQ').value.trim();
   const rows=await apiGet({action:'listOrders',q});
-  ORDERS_CACHE=rows;
-  return rows;
+  ORDERS_CACHE=rows; return rows;
 }
+
+/* ========= 生産一覧 render (NO DROPDOWN 工程) ========= */
 async function renderOrders(){
   const rows=await listOrders();
   $('#tbOrders').innerHTML = rows.map(r=> `
@@ -239,33 +321,16 @@ async function renderOrders(){
       <td>${r['品番']||''}</td>
       <td>${r['図番']||''}</td>
       <td><span class="badge ${statusClass(r.status)}">${r.status}</span></td>
-      <td>
-        <select class="s selProc" data-po="${r.po_id}">
-          ${PROCESSES.map(p=>`<option ${p===r.current_process?'selected':''}>${p}</option>`).join('')}
-        </select>
-      </td>
+      <td><span class="badge info proc ${procClass(r.current_process)}">${r.current_process}</span></td>
       <td class="s muted">${fmtDT(r.updated_at)}</td>
       <td class="s muted">${r.updated_by||''}</td>
-      <td class="s">
+      <td class="ops">
         <button class="btn ghost s" onclick="openTicket('${r.po_id}')"><i data-lucide="file-text"></i>票</button>
         <button class="btn ghost s" onclick="startScanFor('${r.po_id}')"><i data-lucide="scan"></i>更新</button>
         <button class="btn ghost s" onclick="openShipByPO('${r.po_id}')"><i data-lucide="file-text"></i>出荷票</button>
         <button class="btn ghost s" onclick="openHistory('${r.po_id}')"><i data-lucide="history"></i>履歴</button>
       </td>
     </tr>`).join('');
-
-  $$('.selProc').forEach(sel=>{
-    sel.onchange = async (e)=>{
-      const po=e.target.dataset.po, val=e.target.value;
-      const row=ORDERS_CACHE.find(x=>x.po_id===po);
-      const prev=row.current_process;
-      row.current_process=val;
-      e.target.disabled=true;
-      try{ await apiPost('updateOrder',{po_id:po,updates:{current_process:val},user:SESSION}); }
-      catch(err){ alert(err.message||err); row.current_process=prev; e.target.value=prev; }
-      finally{ e.target.disabled=false; }
-    };
-  });
   if(window.lucide){ lucide.createIcons(); }
 }
 
@@ -378,7 +443,7 @@ async function openTicket(po_id){
       <tr><th>得意先</th><td>${o['得意先']||''}</td><th>得意先品番</th><td>${o['得意先品番']||''}</td></tr>
       <tr><th>製番号</th><td>${o['製番号']||''}</td><th>投入日</th><td>${o['created_at']?new Date(o['created_at']).toLocaleDateString():'-'}</td></tr>
       <tr><th>品名</th><td>${o['品名']||''}</td><th>品番/図番</th><td>${(o['品番']||'')} / ${(o['図番']||'')}</td></tr>
-      <tr><th>工程</th><td colspan="3">${o.current_process} <span class="badge info proc ${procClass(o.current_process)}" style="margin-left:.4rem">工程</span></td></tr>
+      <tr><th>工程</th><td colspan="3"><span class="badge info proc ${procClass(o.current_process)}">${o.current_process}</span></td></tr>
       <tr><th>状態</th><td colspan="3"><span class="badge ${statusClass(o.status)}">${o.status}</span> <span class="muted s" style="margin-left:.4rem">更新: ${fmtDT(o.updated_at)} / ${o.updated_by||''}</span></td></tr>
     </table>`;
     showDoc('dlgTicket',body);
@@ -405,7 +470,7 @@ function downloadCSV(name,rows){
   if(!rows||!rows.length) return downloadFile(name,'');
   const headers=Object.keys(rows[0]);
   const csv=[headers.join(',')].concat(
-    rows.map(r=> headers.map(h=> String(r[h]??'').replaceAll('"','""')).map(v=>`"${v}"`).join(','))
+    rows.map(r=> headers.map(h=> String(r[h]??'').replaceAll('"','"')).map(v=>`"${v}"`).join(','))
   ).join('\n');
   downloadFile(name,csv);
 }
@@ -415,7 +480,7 @@ function downloadFile(name,content){
   a.download=name; a.click();
 }
 
-/* ===== Station QR (include 外注) ===== */
+/* ===== Station QR ===== */
 function openStationQR(){
   const wrap = $('#qrWrap'); wrap.innerHTML = '';
   const stations = ['レーザ加工','曲げ工程','外枠組立','シャッター組立','シャッター溶接','コーキング','外枠塗装','組立工程','検査工程','出荷工程','外注'];
@@ -431,9 +496,7 @@ function openStationQR(){
     const link=div.querySelector('a');
     new QRCode(holder,{ text:'ST:'+st, width:200, height:200, correctLevel:QRCode.CorrectLevel.M });
     setTimeout(()=>{
-      const cvs=holder.querySelector('canvas');
-      const img=holder.querySelector('img');
-      let url='';
+      const cvs=holder.querySelector('canvas'); const img=holder.querySelector('img'); let url='';
       if(cvs&&cvs.toDataURL) url=cvs.toDataURL('image/png'); else if(img&&img.src) url=img.src;
       if(url){ link.href=url; link.download=`ST-${st}.png`; } else link.remove();
       if(window.lucide){ lucide.createIcons(); }
@@ -442,15 +505,14 @@ function openStationQR(){
   document.getElementById('dlgStationQR').showModal();
 }
 
-/* ===== Scan: kamera + file + keyboard ===== */
+/* ======== SCAN: ZXing (utama) + Fallback ======== */
 let KB_BUFFER = '', KB_TIMER = null;
 function attachKeyboardScanner(enable = true) {
   const handler = (e) => {
     if ($('#kbMode')?.checked !== true) return;
     if (KB_TIMER) clearTimeout(KB_TIMER);
     if (e.key === 'Enter') {
-      const txt = KB_BUFFER.trim();
-      KB_BUFFER = '';
+      const txt = KB_BUFFER.trim(); KB_BUFFER = '';
       if (txt) handleScannedText(txt);
       return;
     }
@@ -461,44 +523,18 @@ function attachKeyboardScanner(enable = true) {
   else if (attachKeyboardScanner._handler) { window.removeEventListener('keydown', attachKeyboardScanner._handler); attachKeyboardScanner._handler = null; }
 }
 
-async function tryBarcodeDetectorOnce(videoEl, canvasEl) {
-  if (!('BarcodeDetector' in window)) return null;
-  try {
-    const detector = new BarcodeDetector({ formats: ['qr_code'] });
-    const ctx = canvasEl.getContext('2d');
-    canvasEl.width = videoEl.videoWidth; canvasEl.height = videoEl.videoHeight;
-    ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
-    const bmp = await createImageBitmap(canvasEl);
-    const codes = await detector.detect(bmp);
-    return (codes && codes[0]?.rawValue) ? codes[0].rawValue : null;
-  } catch { return null; }
-}
-
-async function scanFromFile(file) {
-  const img = new Image();
-  const url = URL.createObjectURL(file);
-  await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
-  const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
-  const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
-  const id = ctx.getImageData(0, 0, c.width, c.height);
-  const code = jsQR(id.data, c.width, c.height);
-  URL.revokeObjectURL(url);
-  return code ? code.data.trim() : '';
-}
-
-async function handleScannedText(text) {
-  if (!text) return;
+async function handleScannedText(text){
+  if(!text) return;
   $('#scanResult').textContent = '読み取り: ' + text;
-  if (/^ST:/.test(text) && CURRENT_PO) {
-    const station = text.slice(3);
-    const rule = STATION_RULES[station];
-    if (!rule) { $('#scanResult').textContent = '未知のステーション: ' + station; return; }
+  if(/^ST:/.test(text) && CURRENT_PO){
+    const station=text.slice(3); const rule=STATION_RULES[station];
+    if(!rule){ $('#scanResult').textContent='未知のステーション: '+station; return; }
     try{
       const cur = ORDERS_CACHE.find(x=>x.po_id===CURRENT_PO) || await apiGet({action:'ticket',po_id:CURRENT_PO});
       const updates = rule(cur);
-      $('#scanResult').textContent = '更新中...';
+      $('#scanResult').textContent='更新中...';
       await apiPost('updateOrder',{po_id:CURRENT_PO,updates,user:SESSION});
-      $('#scanResult').textContent = `更新完了: ${CURRENT_PO} → ${updates.status||'(状態変更なし)'} / ${updates.current_process||cur.current_process}`;
+      $('#scanResult').textContent=`更新完了: ${CURRENT_PO} → ${updates.status||'(状態変更なし)'} / ${updates.current_process||cur.current_process}`;
       refreshAll(true);
     }catch(e){ $('#scanResult').textContent='更新失敗: '+(e.message||e); }
   }
@@ -513,41 +549,73 @@ function startScanFor(po_id){
 
 async function scanStart(){
   try{
-    if(location.protocol!=='https:') { alert('カメラ利用にはHTTPSが必要です（GitHub Pages/自社ドメイン推奨）'); return; }
-    if(scanStream) return;
+    if(location.protocol!=='https:') { alert('カメラ利用にはHTTPSが必要です'); return; }
+    if(ZX_READER || scanStream) return;
 
-    const v=$('#scanVideo'), c=$('#scanCanvas'), ctx=c.getContext('2d');
-    const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
-    scanStream=st; v.srcObject=st; await v.play();
-
-    $('#btnScanFromFile').onclick = () => $('#fileQR').click();
-    $('#fileQR').onchange = async (e) => {
-      const f = e.target.files?.[0]; if (!f) return;
-      const txt = await scanFromFile(f);
-      if (txt) handleScannedText(txt); else $('#scanResult').textContent = 'Tidak terdeteksi dari gambar.';
+    // Button unggah gambar & keyboard
+    $('#btnScanFromFile').onclick = ()=> $('#fileQR').click();
+    $('#fileQR').onchange = async (e)=>{
+      const f=e.target.files?.[0]; if(!f) return;
+      const url=URL.createObjectURL(f);
+      try{
+        if(window.ZXing && ZXing.BrowserMultiFormatReader){
+          const tmp = new ZXing.BrowserMultiFormatReader();
+          const r = await tmp.decodeFromImageUrl(url);
+          handleScannedText(r?.text||'');
+        } else {
+          const img = new Image(); await new Promise((res,rej)=>{ img.onload=res; img.onerror=rej; img.src=url; });
+          const c=document.createElement('canvas'); c.width=img.naturalWidth; c.height=img.naturalHeight;
+          const ctx=c.getContext('2d'); ctx.drawImage(img,0,0); const id=ctx.getImageData(0,0,c.width,c.height);
+          const code=jsQR(id.data,c.width,c.height); handleScannedText(code?.data?.trim()||'');
+        }
+      }catch{ $('#scanResult').textContent='Tidak terdeteksi dari gambar.'; }
+      finally{ URL.revokeObjectURL(url); }
     };
-
     $('#kbMode').onchange = (e)=> attachKeyboardScanner(e.target.checked);
     attachKeyboardScanner($('#kbMode').checked === true);
 
-    scanTimer=setInterval(async ()=>{
-      if(v.readyState<2) return;
-      const bd = await tryBarcodeDetectorOnce(v, c);
-      if (bd) { handleScannedText(bd); return; }
-      c.width=v.videoWidth; c.height=v.videoHeight;
-      ctx.drawImage(v,0,0,c.width,c.height);
+    const video = $('#scanVideo');
+
+    if(window.ZXing && ZXing.BrowserMultiFormatReader){
+      // ZXing path
+      ZX_READER = new ZXing.BrowserMultiFormatReader();
+      const devices = await ZX_READER.listVideoInputDevices();
+      const back = devices.find(d=>/back|environment|rear/i.test(d.label)) || devices[devices.length-1] || null;
+      const deviceId = back ? back.deviceId : undefined;
+
+      await ZX_READER.decodeFromVideoDevice(deviceId, video, (result, err, controls)=>{
+        ZX_STOP = controls;
+        if(result && result.getText){
+          handleScannedText(result.getText());
+        }
+      });
+      $('#scanResult').textContent='カメラ起動済（ZXing）';
+      return;
+    }
+
+    // Fallback: getUserMedia + jsQR
+    const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+    scanStream=st; video.srcObject=st; await video.play();
+    const c=$('#scanCanvas'), ctx=c.getContext('2d');
+    scanTimer=setInterval(()=>{
+      if(video.readyState<2) return;
+      c.width=video.videoWidth; c.height=video.videoHeight;
+      ctx.drawImage(video,0,0,c.width,c.height);
       const code=jsQR(ctx.getImageData(0,0,c.width,c.height).data,c.width,c.height);
       if(code && code.data) handleScannedText(code.data.trim());
-    }, 400);
+    }, 380);
+    $('#scanResult').textContent='カメラ起動済（fallback）';
   }catch(e){
     alert('カメラ起動失敗: '+(e.message||e)+'\nブラウザのロックアイコン→サイトの設定→カメラ→「許可」を選択してください。');
   }
 }
 
 function scanClose(){
+  if(ZX_STOP){ try{ ZX_STOP.stop(); }catch{} ZX_STOP=null; }
+  if(ZX_READER){ try{ ZX_READER.reset(); }catch{} ZX_READER=null; }
   clearInterval(scanTimer); scanTimer=null;
-  attachKeyboardScanner(false);
   if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; }
+  attachKeyboardScanner(false);
   document.getElementById('dlgScan').close();
 }
 
@@ -617,7 +685,8 @@ function recalcInvoiceTotals(){
   }));
 }
 async function previewInvoiceUI(){
-  const cust=$('#inv_customer').value.trim(), from=$('#inv_from').value, to=$('#inv_to').value; if(!from||!to) return alert('期間を指定してください');
+  const cust=$('#inv_customer').value.trim(), from=$('#inv_from').value, to=$('#inv_to').value;
+  if(!from||!to) return alert('期間を指定してください');
   try{
     const d=await apiGet({action:'previewInvoice',customer:cust,from:from,to:to});
     INV_PREVIEW={info:d.info, lines:d.lines, inv_id:''};
@@ -679,14 +748,10 @@ function exportInvoiceCSV(){
 let CHARTS={};
 async function renderChartsPage(){
   const d=await apiGet({action:'charts'});
-  const labels=Object.keys(d.defectByProc||{});
-  const vals=Object.values(d.defectByProc||{});
+  const labels=Object.keys(d.defectByProc||{}), vals=Object.values(d.defectByProc||{});
   CHARTS.pareto?.destroy();
   CHARTS.pareto=new Chart($('#chartPareto'),{ type:'bar', data:{labels,datasets:[{label:'不良件数(工程別)',data:vals,yAxisID:'y'}]}, options:{responsive:true,plugins:{legend:{display:true}},scales:{y:{beginAtZero:true}, y1:{type:'linear',position:'right',min:0,max:100,ticks:{callback:v=>v+'%'}}}} });
   CHARTS.cust?.destroy(); CHARTS.cust=new Chart($('#chartCustomer'),{type:'pie',data:{labels:Object.keys(d.perCust),datasets:[{data:Object.values(d.perCust)}]}});
   CHARTS.month?.destroy(); CHARTS.month=new Chart($('#chartMonthly'),{type:'bar',data:{labels:['1','2','3','4','5','6','7','8','9','10','11','12'],datasets:[{label:'月別出荷数量（'+d.year+'）',data:d.perMonth}]}} );
   CHARTS.stock?.destroy(); CHARTS.stock=new Chart($('#chartStock'),{type:'pie',data:{labels:Object.keys(d.stockBuckets),datasets:[{data:Object.values(d.stockBuckets)}]}});
 }
-
-/* ===== Utils ===== */
-function fillManualSelectorsIf(){ if(!$('#manualProc').children.length) fillManualSelectors(); }
