@@ -6,10 +6,22 @@
   <title>東京精密発條株式会社システム</title>
   <link rel="icon" href="assets/tsh.png">
   <link rel="stylesheet" href="style.css">
+
+  <!-- Libs (CDN) -->
+  <!-- Chart.js hanya dipakai di halaman Chart; tetap preload agar cepat -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- ZXing: scanner yang lebih andal di HP -->
+  <script defer src="https://unpkg.com/@zxing/browser@0.1.4"></script>
+  <!-- Fallbacks -->
   <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <!-- Ikon -->
   <script defer src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- App -->
   <script defer src="app.js"></script>
 </head>
 <body>
@@ -39,7 +51,7 @@
   <!-- Auth -->
   <main id="authView" class="container">
     <section class="card card-tight">
-      <h2>ログイン</h2>
+      <h2>ログイン（スプレッドシートDB）</h2>
       <div class="grid m1">
         <input id="inUser" placeholder="ユーザー名">
         <input id="inPass" type="password" placeholder="パスワード">
@@ -117,6 +129,8 @@
       <header class="row-between">
         <h3><i data-lucide="file-text"></i> 受注（営業）入力</h3>
         <div class="row gap">
+        <button class="btn ghost" id="btnSalesImport"><i data-lucide="upload"></i>インポートCSV</button>
+<input type="file" id="fileSalesCSV" accept=".csv" class="hidden">
           <button class="btn ghost" id="btnSalesExport"><i data-lucide="download"></i>エクスポート</button>
           <button class="btn primary" id="btnSalesSave"><i data-lucide="save"></i>保存</button>
           <button class="btn" id="btnSalesDelete"><i data-lucide="trash-2"></i>削除</button>
@@ -154,6 +168,9 @@
         <h3><i data-lucide="clipboard-list"></i> 生産計画（生産現品票）</h3>
         <div class="row gap">
           <button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button>
+          <button class="btn ghost" id="btnPlanImport"><i data-lucide="upload"></i>インポートCSV</button>
+<input type="file" id="filePlanCSV" accept=".csv" class="hidden">
+
           <button class="btn ghost" id="btnPlanExport"><i data-lucide="download"></i>エクスポート</button>
           <button class="btn ghost" id="btnPlanEdit"><i data-lucide="pencil"></i>編集</button>
           <button class="btn primary" id="btnCreateOrder"><i data-lucide="save"></i>保存</button>
@@ -182,6 +199,9 @@
         <h3><i data-lucide="truck"></i> 出荷予定 / 出荷確認</h3>
         <div class="row gap">
           <button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button>
+          <button class="btn ghost" id="btnShipImport"><i data-lucide="upload"></i>インポートCSV</button>
+<input type="file" id="fileShipCSV" accept=".csv" class="hidden">
+
           <button class="btn ghost" id="btnShipExport"><i data-lucide="download"></i>エクスポート</button>
           <button class="btn ghost" id="btnShipEdit"><i data-lucide="pencil"></i>編集</button>
           <button class="btn primary" id="btnSchedule"><i data-lucide="save"></i>保存</button>
@@ -225,12 +245,12 @@
       <div class="table-wrap">
         <table class="table s" id="tblInv">
           <thead><tr><th>#</th><th>品名</th><th>品番</th><th>図番</th><th>数量</th><th>単価</th><th>金額</th><th>注番</th><th>出荷ID</th></tr></thead>
-          <tbody id="invLines"></tbody>
-          <tfoot>
-            <tr><td colspan="5"></td><td class="muted">小計</td><td id="invSub">0</td><td colspan="2"></td></tr>
-            <tr><td colspan="5"></td><td class="muted">税額(10%)</td><td id="invTax">0</td><td colspan="2"></td></tr>
-            <tr><td colspan="5"></td><td class="muted"><b>合計</b></td><td id="invTotal"><b>0</b></td><td colspan="2"></td></tr>
-          </tfoot>
+        <tbody id="invLines"></tbody>
+        <tfoot>
+          <tr><td colspan="5"></td><td class="muted">小計</td><td id="invSub">0</td><td colspan="2"></td></tr>
+          <tr><td colspan="5"></td><td class="muted">税額(10%)</td><td id="invTax">0</td><td colspan="2"></td></tr>
+          <tr><td colspan="5"></td><td class="muted"><b>合計</b></td><td id="invTotal"><b>0</b></td><td colspan="2"></td></tr>
+        </tfoot>
         </table>
       </div>
     </section>
@@ -269,8 +289,6 @@
   <dialog id="dlgTicket" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button><button class="btn" onclick="document.getElementById('dlgTicket').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
   <dialog id="dlgShip" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button><button class="btn" onclick="document.getElementById('dlgShip').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", ()=>{ if(window.lucide){ lucide.createIcons(); } });
-  </script>
+  <script>document.addEventListener("DOMContentLoaded", ()=>{ if(window.lucide){ lucide.createIcons(); } });</script>
 </body>
 </html>
