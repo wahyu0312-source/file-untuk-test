@@ -909,13 +909,67 @@ function exportInvoiceCSV(){
 }
 
 /* ===== Charts page ===== */
+/* ===== Charts page (Pareto + others) ===== */
 let CHARTS={};
 async function renderChartsPage(){
-  const d=await apiGet({action:'charts'});
-  const labels=Object.keys(d.defectByProc||{}), vals=Object.values(d.defectByProc||{});
-  CHARTS.pareto?.destroy();
-  CHARTS.pareto=new Chart($('#chartPareto'),{ type:'bar', data:{labels,datasets:[{label:'不良件数(工程別)',data:vals,yAxisID:'y'}]}, options:{responsive:true,plugins:{legend:{display:true}},scales:{y:{beginAtZero:true}, y1:{type:'linear',position:'right',min:0,max:100,ticks:{callback:v=>v+'%'}}}} });
-  CHARTS.cust?.destroy(); CHARTS.cust=new Chart($('#chartCustomer'),{type:'pie',data:{labels:Object.keys(d.perCust),datasets:[{data:Object.values(d.perCust)}]}});
-  CHARTS.month?.destroy(); CHARTS.month=new Chart($('#chartMonthly'),{type:'bar',data:{labels:['1','2','3','4','5','6','7','8','9','10','11','12'],datasets:[{label:'月別出荷数量（'+d.year+'）',data:d.perMonth}]}} );
-  CHARTS.stock?.destroy(); CHARTS.stock=new Chart($('#chartStock'),{type:'pie',data:{labels:Object.keys(d.stockBuckets),datasets:[{data:Object.values(d.stockBuckets)}]}});
+  try{
+    const d=await apiGet({action:'charts'});
+
+    // Destroy existing charts safely
+    Object.keys(CHARTS).forEach(k=>{
+      try{ CHARTS[k]?.destroy?.(); }catch(e){}
+    });
+
+    // Pareto chart (bar + cumulative line)
+    const paretoLabels = Object.keys(d.defectByProc||{});
+    const paretoVals   = Object.values(d.defectByProc||{});
+    const total = paretoVals.reduce((a,b)=>a+b,0)||1;
+    let cum=0;
+    const cumPct = paretoVals.map(v=>(cum+=v)/total*100);
+
+    CHARTS.pareto = new Chart(document.getElementById('chartPareto'),{
+      type:'bar',
+      data:{ labels: paretoLabels,
+        datasets:[
+          { label:'不良件数(工程別)', data: paretoVals, yAxisID:'y' },
+          { type:'line', label:'累積比率', data: cumPct, yAxisID:'y1' }
+        ]
+      },
+      options:{
+        responsive:true,
+        plugins:{ legend:{ display:true }},
+        scales:{
+          y:{ beginAtZero:true, title:{display:true, text:'件数'} },
+          y1:{ type:'linear', position:'right', min:0, max:100, ticks:{ callback:v=>v+'%' }, grid:{ drawOnChartArea:false }, title:{display:true, text:'%'} }
+        }
+      }
+    });
+
+    // Customer pie
+    CHARTS.cust = new Chart(document.getElementById('chartCustomer'),{
+      type:'pie',
+      data:{ labels:Object.keys(d.perCust||{}), datasets:[{ data:Object.values(d.perCust||{}) }] },
+      options:{ responsive:true }
+    });
+
+    // Monthly shipments
+    CHARTS.month = new Chart(document.getElementById('chartMonthly'),{
+      type:'bar',
+      data:{ labels:['1','2','3','4','5','6','7','8','9','10','11','12'],
+        datasets:[{ label:`月別出荷数量（${d.year}）`, data:d.perMonth||[] }] },
+      options:{ responsive:true, scales:{ y:{ beginAtZero:true } } }
+    });
+
+    // Stock buckets pie
+    CHARTS.stock = new Chart(document.getElementById('chartStock'),{
+      type:'pie',
+      data:{ labels:Object.keys(d.stockBuckets||{}), datasets:[{ data:Object.values(d.stockBuckets||{}) }] },
+      options:{ responsive:true }
+    });
+
+  }catch(e){
+    console.error(e);
+    alert('チャートの読み込みに失敗: '+(e.message||e));
+  }
 }
+
