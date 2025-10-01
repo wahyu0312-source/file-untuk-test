@@ -408,25 +408,56 @@ async function deleteOrderUI(){
 /* ===== Ship ===== */
 async function scheduleUI(){
   if(!(SESSION.role==='admin'||SESSION.department==='生産技術'||SESSION.department==='生産管理部')) return alert('権限不足');
-  const po=$('#s_po').value.trim(), dateIso=$('#s_date').value, qty=$('#s_qty').value;
-  if(!po||!dateIso) return alert('注番と日付');
+  const po=$('#s_po').value.trim(),
+        dateIso=$('#s_date').value,
+        qty=$('#s_qty').value;
+
+  const extra={
+    delivery_date: $('#s_delivery').value,
+    carrier:       $('#s_carrier').value.trim(),
+    destination:   $('#s_dest').value.trim(),
+    note:          $('#s_note').value.trim(),
+    remarks:       $('#s_remarks').value.trim()
+  };
+  if(!po||!dateIso) return alert('注番と出荷日を入力してください');
+
   try{
     const shipId=$('#s_shipid').value.trim();
-    if (shipId){ await apiPost('updateShipment',{ship_id:shipId,updates:{po_id:po,scheduled_date:dateIso,qty:qty},user:SESSION}); alert('出荷予定を編集しました'); }
-    else{ const r=await apiPost('scheduleShipment',{po_id:po,dateIso,qty,user:SESSION}); alert('登録: '+r.ship_id); }
+    if (shipId){
+      await apiPost('updateShipment',{
+        ship_id:shipId,
+        updates:{ po_id:po, scheduled_date:dateIso, qty:qty, delivery_date:extra.delivery_date,
+                  carrier:extra.carrier, destination:extra.destination, note:extra.note, remarks:extra.remarks },
+        user:SESSION
+      });
+      alert('出荷予定を編集しました');
+    }else{
+      const r=await apiPost('scheduleShipment',{ po_id:po, dateIso, qty, extra, user:SESSION });
+      alert('登録: '+r.ship_id);
+      $('#s_shipid').value = r.ship_id;
+    }
     refreshAll(true);
   }catch(e){ alert(e.message||e); }
 }
+
 async function loadShipForEdit(){
-  const sid=$('#s_shipid').value.trim(); if(!sid) return alert('出荷ID入力');
+  const sid=$('#s_shipid').value.trim();
+  if(!sid) return alert('出荷ID入力');
   try{
     const d=await apiGet({action:'shipById',ship_id:sid});
-    $('#s_po').value=d.shipment.po_id||'';
-    $('#s_date').value = d.shipment.scheduled_date? new Date(d.shipment.scheduled_date).toISOString().slice(0,10):'';
-    $('#s_qty').value=d.shipment.qty||0;
+    const s=d.shipment;
+    $('#s_po').value = s.po_id||'';
+    $('#s_date').value = s.scheduled_date? new Date(s.scheduled_date).toISOString().slice(0,10) : '';
+    $('#s_qty').value  = s.qty||0;
+    $('#s_delivery').value = s.delivery_date? new Date(s.delivery_date).toISOString().slice(0,10) : '';
+    $('#s_carrier').value  = s.carrier||'';
+    $('#s_dest').value     = s.destination||'';
+    $('#s_note').value     = s.note||'';
+    $('#s_remarks').value  = s.remarks||'';
     alert('読み込み完了。');
   }catch(e){ alert(e.message||e); }
 }
+
 async function deleteShipUI(){
   if(!(SESSION.role==='admin'||SESSION.department==='生産技術'||SESSION.department==='生産管理部')) return alert('権限不足');
   const sid=$('#s_shipid').value.trim(); if(!sid) return alert('出荷ID入力'); if(!confirm('削除しますか？')) return;
@@ -450,15 +481,59 @@ async function openTicket(po_id){
   }catch(e){ alert(e.message||e); }
 }
 function showShipDoc(s,o){
-  const dt=s.scheduled_date? new Date(s.scheduled_date):null;
-  const body=`<h3>出荷確認書</h3><table>
-    <tr><th>得意先</th><td>${o['得意先']||''}</td><th>出荷日</th><td>${dt?dt.toLocaleDateString():'-'}</td></tr>
-    <tr><th>品名</th><td>${o['品名']||''}</td><th>品番/図番</th><td>${(o['品番']||'')} / ${(o['図番']||'')}</td></tr>
-    <tr><th>注番</th><td>${o.po_id||s.po_id}</td><th>数量</th><td>${s.qty||0}</td></tr>
-    <tr><th>出荷ステータス</th><td colspan="3"><span class="badge ${statusClass(s.status)}">${s.status}</span></td></tr>
-  </table>`;
-  showDoc('dlgShip',body);
+  // mapping
+  const shipDate = s.scheduled_date? new Date(s.scheduled_date) : null;
+  const deliDate = s.delivery_date?  new Date(s.delivery_date)  : null;
+
+  // 顧客名 = 得意先 from order
+  const cust = o['得意先']||'';
+  // 図番/機種/商品名 ＝ 図番/品番/品名
+  const zuban = o['図番']||'';
+  const kisyuu= o['品番']||'';     // “機種”と表記
+  const hinmei= o['品名']||'';
+
+  const qty   = s.qty||0;
+  const dest  = s.destination||'';
+  const note  = s.note||'';
+  const remarks = s.remarks||'';
+  const carrier = s.carrier||'';
+
+  const body = `
+  <h3 style="text-align:center;margin:6px 0">出荷確認書</h3>
+  <table class="ship-head">
+    <tr><th>顧客名</th><td>${cust}</td><th>運送会社</th><td>${carrier||''}</td></tr>
+    <tr><th>出荷日</th><td>${shipDate? shipDate.toLocaleDateString():''}</td><th>納入日</th><td>${deliDate? deliDate.toLocaleDateString():''}</td></tr>
+  </table>
+  <div style="text-align:center;margin:6px 0 8px 0;font-weight:700">▼▼▼ 以下の通り出荷致します ▼▼▼</div>
+  <table class="ship-lines">
+    <thead>
+      <tr>
+        <th>図番</th><th>機種</th><th>商品名</th><th style="width:70px">数量</th>
+        <th>送り先</th><th>注意</th><th>備考</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>${zuban}</td>
+        <td>${kisyuu}</td>
+        <td>${hinmei}</td>
+        <td style="text-align:right">${qty}</td>
+        <td>${dest}</td>
+        <td>${note}</td>
+        <td>${remarks}</td>
+      </tr>
+    </tbody>
+  </table>
+  <table class="ship-foot">
+    <tr><th>注番</th><td>${o.po_id||s.po_id}</td><th>出荷ID</th><td>${s.ship_id||''}</td></tr>
+  </table>
+  `;
+
+  const dlg=document.getElementById('dlgShip');
+  dlg.querySelector('.body').innerHTML = body;
+  dlg.showModal();
 }
+
 async function openShipByPO(po_id){ try{ const d=await apiGet({action:'shipByPo',po_id}); showShipDoc(d.shipment,d.order);}catch(e){ alert(e.message||e);} }
 async function openShipByID(id){ try{ const d=await apiGet({action:'shipById',ship_id:id}); showShipDoc(d.shipment,d.order);}catch(e){ alert(e.message||e);} }
 function showDoc(id,html){ const dlg=document.getElementById(id); dlg.querySelector('.body').innerHTML=html; dlg.showModal(); }
