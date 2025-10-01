@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
   <title>東京精密発條株式会社システム</title>
-  <link rel="icon" href="assets/logo.png">
+  <link rel="icon" href="assets/tsh.png">
   <link rel="stylesheet" href="style.css">
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
@@ -73,7 +73,10 @@
     <section class="card">
       <header class="row-between">
         <h3><i data-lucide="activity"></i> ダッシュボード</h3>
-        <div class="row gap"><button class="btn ghost" id="btnRefresh"><i data-lucide="refresh-ccw"></i>更新</button><button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button></div>
+        <div class="row gap">
+          <button class="btn ghost" id="btnRefresh"><i data-lucide="refresh-ccw"></i>更新</button>
+          <button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button>
+        </div>
       </header>
 
       <div class="grid-3">
@@ -99,19 +102,61 @@
             <div class="muted s">完成品在庫（明細）</div>
             <button id="btnExportFinished" class="btn ghost s"><i data-lucide="download"></i>CSV</button>
           </div>
-          <div class="list s header-like">
-            <div><span class="bold">注番・得意先</span><span class="bold right">品名／図番・数量</span></div>
-          </div>
-          <div id="listFinished" class="list s"></div>
+          <div id="listFinished" class="table-wrap" style="max-height:42vh"></div>
         </div>
       </div>
     </section>
   </main>
 
-  <!-- Dialogs minimal -->
-  <dialog id="dlgHistory" class="paper"><div class="body"><h3>更新履歴</h3><div id="histBody"></div></div><footer class="row-end"><button class="btn" onclick="document.getElementById('dlgHistory').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
-  <dialog id="dlgTicket" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button><button class="btn" onclick="document.getElementById('dlgTicket').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
-  <dialog id="dlgShip" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button><button class="btn" onclick="document.getElementById('dlgShip').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
+  <!-- Dialogs -->
+  <dialog id="dlgHistory" class="paper">
+    <div class="body"><h3>更新履歴</h3><div id="histBody"></div></div>
+    <footer class="row-end">
+      <button class="btn" onclick="document.getElementById('dlgHistory').close()"><i data-lucide="x"></i>閉じる</button>
+    </footer>
+  </dialog>
+
+  <dialog id="dlgTicket" class="paper">
+    <div class="body"></div>
+    <footer class="row-end">
+      <button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button>
+      <button class="btn" onclick="document.getElementById('dlgTicket').close()"><i data-lucide="x"></i>閉じる</button>
+    </footer>
+  </dialog>
+
+  <dialog id="dlgShip" class="paper">
+    <div class="body"></div>
+    <footer class="row-end">
+      <button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button>
+      <button class="btn" onclick="document.getElementById('dlgShip').close()"><i data-lucide="x"></i>閉じる</button>
+    </footer>
+  </dialog>
+
+  <!-- スキャン / Kōshin -->
+  <dialog id="dlgScan" class="paper">
+    <div class="body">
+      <h3><i data-lucide="qr-code"></i> 工程スキャン</h3>
+      <div class="grid m1" style="gap:.8rem">
+        <div class="row gap">
+          <select id="scanCamera" class="grow"></select>
+          <button id="scanReset" class="btn ghost s"><i data-lucide="rotate-ccw"></i>リセット</button>
+        </div>
+        <video id="scanVideo" playsinline muted style="width:100%;border-radius:12px;border:1px solid var(--border)"></video>
+        <canvas id="scanCanvas" class="hidden"></canvas>
+        <div class="muted s">結果: <span id="scanResult"></span></div>
+        <div class="grid">
+          <input id="scanPo" placeholder="PO-xxxxx（自動入力）">
+          <input id="scanNote" placeholder="備考（任意）">
+          <select id="scanProcess"></select>
+          <select id="scanStatus"></select>
+        </div>
+      </div>
+    </div>
+    <footer class="row-between" style="gap:.6rem">
+      <button id="scanClose" class="btn"><i data-lucide="x"></i>閉じる</button>
+      <button id="scanApply" class="btn primary"><i data-lucide="save"></i>更新</button>
+    </footer>
+  </dialog>
 
   <script>document.addEventListener("DOMContentLoaded", ()=>{ if(window.lucide){ lucide.createIcons(); } });</script>
 </body>
