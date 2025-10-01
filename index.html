@@ -4,9 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
   <title>東京精密発條株式会社システム</title>
-  <link rel="icon" href="assets/tsh.png">
+  <link rel="icon" href="assets/logo.png">
   <link rel="stylesheet" href="style.css">
-  <!-- Charts & helpers -->
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -15,10 +14,7 @@
 </head>
 <body>
   <nav class="nav">
-    <div class="nav-left">
-      <img src="assets/tsh.png" class="logo" alt="">
-      <span class="brand">東京精密発條株式会社システム</span>
-    </div>
+    <div class="nav-left"><img src="assets/logo.png" class="logo" alt=""><span class="brand">東京精密発條株式会社システム</span></div>
     <div class="nav-right">
       <button id="btnToDash" class="btn ghost hidden"><i data-lucide="layout-dashboard"></i>ダッシュ</button>
       <button id="btnToSales" class="btn ghost hidden"><i data-lucide="file-text"></i>受注</button>
@@ -34,55 +30,41 @@
     </div>
   </nav>
 
-  <!-- Loading spinner -->
   <div id="loading" class="loading hidden"><div class="spinner"></div></div>
 
-  <!-- Auth -->
   <main id="authView" class="container">
     <section class="card card-tight">
       <h2>ログイン（スプレッドシートDB）</h2>
-      <div class="grid m1">
-        <input id="inUser" placeholder="ユーザー名">
-        <input id="inPass" type="password" placeholder="パスワード">
-      </div>
+      <div class="grid m1"><input id="inUser" placeholder="ユーザー名"><input id="inPass" type="password" placeholder="パスワード"></div>
       <details class="card" style="margin-top:.8rem">
         <summary><strong>管理者: ユーザー追加</strong></summary>
         <div class="grid m1" style="margin-top:.6rem">
-          <input id="nuUser" placeholder="ユーザー名">
-          <input id="nuPass" type="password" placeholder="パスワード">
-          <input id="nuName" placeholder="氏名">
-          <select id="nuDept">
-            <option value="営業">営業</option><option value="生産技術">生産技術</option>
-            <option value="生産管理部">生産管理部</option><option value="製造部">製造部</option><option value="検査部">検査部</option>
-          </select>
-          <select id="nuRole"><option value="member">member</option><option value="manager">manager</option><option value="admin">admin</option></select>
+          <input id="nuUser" placeholder="ユーザー名"><input id="nuPass" type="password" placeholder="パスワード"><input id="nuName" placeholder="氏名">
+          <select id="nuDept"><option>営業</option><option>生産技術</option><option>生産管理部</option><option>製造部</option><option>検査部</option></select>
+          <select id="nuRole"><option>member</option><option>manager</option><option>admin</option></select>
         </div>
         <button id="btnNewUser" class="btn ghost full"><i data-lucide="user-plus"></i>ユーザー追加</button>
-        <p class="muted s">初回: <code>admin / admin123</code>（Users空なら自動作成。部門=生産技術）</p>
+        <p class="muted s">初回: <code>admin / admin123</code></p>
       </details>
       <button id="btnLogin" class="btn primary full" style="margin-top:.8rem"><i data-lucide="log-in"></i>ログイン</button>
     </section>
   </main>
 
-  <!-- Dashboard -->
   <main id="pageDash" class="container hidden">
-    <section class="card" id="ordersSection">
+    <section class="card">
       <header class="row-between">
         <h3><i data-lucide="list"></i> 生産一覧</h3>
-        <div class="row gap">
-          <input id="searchQ" placeholder="検索（注番・品番…）" class="input">
+        <div class="row gap"><input id="searchQ" placeholder="検索（注番・品番…）" class="input">
           <button class="btn ghost" id="btnExportOrders"><i data-lucide="download"></i>注文CSV</button>
           <button class="btn ghost" id="btnExportShip"><i data-lucide="download"></i>本日出荷CSV</button>
         </div>
       </header>
       <div class="table-wrap" style="max-height:56vh">
         <table class="table s">
-          <thead>
-            <tr>
-              <th>注番</th><th>得意先</th><th>製番号</th><th>品名</th><th>品番</th><th>図番</th>
-              <th>状態</th><th>工程</th><th>更新日時</th><th>更新者</th><th>操作</th>
-            </tr>
-          </thead>
+          <thead><tr>
+            <th>注番</th><th>得意先</th><th>製番号</th><th>品名</th><th>品番</th><th>図番</th>
+            <th>状態</th><th>工程</th><th>更新日時</th><th>更新者</th><th>操作</th>
+          </tr></thead>
           <tbody id="tbOrders"></tbody>
         </table>
       </div>
@@ -91,10 +73,7 @@
     <section class="card">
       <header class="row-between">
         <h3><i data-lucide="activity"></i> ダッシュボード</h3>
-        <div class="row gap">
-          <button class="btn ghost" id="btnRefresh"><i data-lucide="refresh-ccw"></i>更新</button>
-          <button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button>
-        </div>
+        <div class="row gap"><button class="btn ghost" id="btnRefresh"><i data-lucide="refresh-ccw"></i>更新</button><button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button></div>
       </header>
 
       <div class="grid-3">
@@ -105,9 +84,7 @@
         </div>
 
         <div class="tile">
-          <div class="row-between">
-            <div class="muted s">本日の出荷予定</div>
-          </div>
+          <div class="muted s">本日の出荷予定</div>
           <div id="listToday" class="list s"></div>
         </div>
 
@@ -122,13 +99,16 @@
             <div class="muted s">完成品在庫（明細）</div>
             <button id="btnExportFinished" class="btn ghost s"><i data-lucide="download"></i>CSV</button>
           </div>
+          <div class="list s header-like">
+            <div><span class="bold">注番・得意先</span><span class="bold right">品名／図番・数量</span></div>
+          </div>
           <div id="listFinished" class="list s"></div>
         </div>
       </div>
     </section>
   </main>
 
-  <!-- Sales / Plan / Ship / Invoice / Charts & dialogs (tidak diubah di sini agar singkat) -->
+  <!-- Dialogs minimal -->
   <dialog id="dlgHistory" class="paper"><div class="body"><h3>更新履歴</h3><div id="histBody"></div></div><footer class="row-end"><button class="btn" onclick="document.getElementById('dlgHistory').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
   <dialog id="dlgTicket" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button><button class="btn" onclick="document.getElementById('dlgTicket').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
   <dialog id="dlgShip" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button><button class="btn" onclick="document.getElementById('dlgShip').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
