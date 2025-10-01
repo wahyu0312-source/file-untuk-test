@@ -194,32 +194,42 @@
 
   <!-- Ship -->
   <main id="pageShip" class="container hidden">
-    <section class="card">
-      <header class="row-between">
-        <h3><i data-lucide="truck"></i> 出荷予定 / 出荷確認</h3>
-        <div class="row gap">
-          <button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button>
-          <button class="btn ghost" id="btnShipImport"><i data-lucide="upload"></i>インポートCSV</button>
-<input type="file" id="fileShipCSV" accept=".csv" class="hidden">
+  <section class="card">
+    <header class="row-between">
+      <h3><i data-lucide="truck"></i> 出荷予定 / 出荷確認</h3>
+      <div class="row gap">
+        <button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button>
+        <button class="btn ghost" id="btnShipExport"><i data-lucide="download"></i>エクスポート</button>
+        <button class="btn ghost" id="btnShipEdit"><i data-lucide="file-pen"></i>編集</button>
+        <button class="btn primary" id="btnSchedule"><i data-lucide="save"></i>保存</button>
+        <button class="btn" id="btnShipDelete"><i data-lucide="trash-2"></i>削除</button>
+      </div>
+    </header>
 
-          <button class="btn ghost" id="btnShipExport"><i data-lucide="download"></i>エクスポート</button>
-          <button class="btn ghost" id="btnShipEdit"><i data-lucide="pencil"></i>編集</button>
-          <button class="btn primary" id="btnSchedule"><i data-lucide="save"></i>保存</button>
-          <button class="btn" id="btnShipDelete"><i data-lucide="trash-2"></i>削除</button>
-        </div>
-      </header>
-      <div class="grid m1">
-        <input id="s_po" placeholder="注番">
-        <input id="s_date" type="date">
-        <input id="s_qty" type="number" min="0" placeholder="数量">
-        <input id="s_shipid" placeholder="出荷ID（編集/削除用）">
-      </div>
-      <div class="row gap" style="margin-top:.6rem">
-        <button id="btnShipByPO" class="btn ghost grow"><i data-lucide="file-text"></i>出荷確認書（注番）</button>
-        <button id="btnShipByID" class="btn ghost grow"><i data-lucide="file-text"></i>出荷確認書（出荷ID）</button>
-      </div>
-    </section>
-  </main>
+    <!-- baris 1 -->
+    <div class="grid m1">
+      <input id="s_po" placeholder="注番">
+      <input id="s_date" type="date" placeholder="出荷日">
+      <input id="s_qty" type="number" min="0" placeholder="数量">
+      <input id="s_shipid" placeholder="出荷ID（編集/削除用）">
+    </div>
+
+    <!-- baris 2: field tambahan untuk form -->
+    <div class="grid m1" style="margin-top:.6rem">
+      <input id="s_delivery" type="date" placeholder="納入日">
+      <input id="s_carrier" placeholder="運送会社">
+      <input id="s_dest" placeholder="送り先">
+      <input id="s_note" placeholder="注意">
+      <input id="s_remarks" placeholder="備考">
+    </div>
+
+    <div class="row gap" style="margin-top:.6rem">
+      <button id="btnShipByPO" class="btn ghost grow"><i data-lucide="file-check-2"></i>出荷確認書（注番）</button>
+      <button id="btnShipByID" class="btn ghost grow"><i data-lucide="file-check-2"></i>出荷確認書（出荷ID）</button>
+    </div>
+  </section>
+</main>
+
 
   <!-- Invoice -->
   <main id="pageInvoice" class="container hidden">
