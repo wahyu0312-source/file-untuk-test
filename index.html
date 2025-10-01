@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
   <title>東京精密発條株式会社システム</title>
-  <link rel="icon" href="assets/tsh.png">
+  <link rel="icon" href="assets/logo.png">
   <link rel="stylesheet" href="style.css">
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
@@ -19,11 +19,11 @@
       <span class="brand">東京精密発條株式会社システム</span>
     </div>
     <div class="nav-right">
-      <button id="btnToDash" class="btn ghost hidden"><i data-lucide="layout-dashboard"></i>ホーム</button>
+      <button id="btnToDash" class="btn ghost hidden"><i data-lucide="layout-dashboard"></i>ダッシュ</button>
       <button id="btnToSales" class="btn ghost hidden"><i data-lucide="file-text"></i>受注</button>
       <button id="btnToPlan" class="btn ghost hidden"><i data-lucide="clipboard-list"></i>計画</button>
       <button id="btnToShip" class="btn ghost hidden"><i data-lucide="truck"></i>出荷</button>
-      <button id="btnToInvoice" class="btn ghost hidden"><i data-lucide="file-invoice"></i>請求</button>
+      <button id="btnToInvoice" class="btn ghost hidden"><i data-lucide="file-text"></i>請求</button>
       <button id="btnToCharts" class="btn ghost hidden"><i data-lucide="pie-chart"></i>チャート</button>
       <button id="btnShowStationQR" class="btn ghost hidden"><i data-lucide="qr-code"></i>工程QR</button>
       <span id="userInfo" class="muted"></span>
@@ -155,7 +155,7 @@
         <div class="row gap">
           <button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button>
           <button class="btn ghost" id="btnPlanExport"><i data-lucide="download"></i>エクスポート</button>
-          <button class="btn ghost" id="btnPlanEdit"><i data-lucide="file-pen"></i>編集</button>
+          <button class="btn ghost" id="btnPlanEdit"><i data-lucide="pencil"></i>編集</button>
           <button class="btn primary" id="btnCreateOrder"><i data-lucide="save"></i>保存</button>
           <button class="btn" id="btnPlanDelete"><i data-lucide="trash-2"></i>削除</button>
         </div>
@@ -183,7 +183,7 @@
         <div class="row gap">
           <button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button>
           <button class="btn ghost" id="btnShipExport"><i data-lucide="download"></i>エクスポート</button>
-          <button class="btn ghost" id="btnShipEdit"><i data-lucide="file-pen"></i>編集</button>
+          <button class="btn ghost" id="btnShipEdit"><i data-lucide="pencil"></i>編集</button>
           <button class="btn primary" id="btnSchedule"><i data-lucide="save"></i>保存</button>
           <button class="btn" id="btnShipDelete"><i data-lucide="trash-2"></i>削除</button>
         </div>
@@ -195,8 +195,8 @@
         <input id="s_shipid" placeholder="出荷ID（編集/削除用）">
       </div>
       <div class="row gap" style="margin-top:.6rem">
-        <button id="btnShipByPO" class="btn ghost grow"><i data-lucide="file-check-2"></i>出荷確認書（注番）</button>
-        <button id="btnShipByID" class="btn ghost grow"><i data-lucide="file-check-2"></i>出荷確認書（出荷ID）</button>
+        <button id="btnShipByPO" class="btn ghost grow"><i data-lucide="file-text"></i>出荷確認書（注番）</button>
+        <button id="btnShipByID" class="btn ghost grow"><i data-lucide="file-text"></i>出荷確認書（出荷ID）</button>
       </div>
     </section>
   </main>
@@ -204,7 +204,7 @@
   <!-- Invoice -->
   <main id="pageInvoice" class="container hidden">
     <section class="card">
-      <header class="row-between"><h3><i data-lucide="file-invoice"></i> 請求書作成</h3></header>
+      <header class="row-between"><h3><i data-lucide="file-text"></i> 請求書作成</h3></header>
       <div class="grid m1">
         <input id="inv_customer" placeholder="得意先" list="dl_tokui">
         <input id="inv_from" type="date" placeholder="期間自">
@@ -221,7 +221,7 @@
       </div>
     </section>
     <section class="card">
-      <h3><i data-lucide="rows"></i> 請求明細（単価編集可）</h3>
+      <h3><i data-lucide="table-2"></i> 請求明細（単価編集可）</h3>
       <div class="table-wrap">
         <table class="table s" id="tblInv">
           <thead><tr><th>#</th><th>品名</th><th>品番</th><th>図番</th><th>数量</th><th>単価</th><th>金額</th><th>注番</th><th>出荷ID</th></tr></thead>
@@ -252,9 +252,8 @@
       <div class="row gap" style="margin-top:.5rem">
         <select id="manualProc" class="grow"></select>
         <select id="manualStatus" class="grow"></select>
-        <button id="btnManualApply" class="btn ghost"><i data-lucide="edit-3"></i>手動更新</button>
+        <button id="btnManualApply" class="btn ghost"><i data-lucide="pencil"></i>手動更新</button>
       </div>
-      <!-- Tambahan: opsi gambar & scanner keyboard -->
       <div class="row gap" style="margin-top:.5rem">
         <input id="fileQR" type="file" accept="image/*" class="hidden">
         <button class="btn ghost" id="btnScanFromFile"><i data-lucide="image"></i>Dari Gambar</button>
@@ -262,7 +261,7 @@
       </div>
       <div id="scanResult" class="muted s" style="margin-top:.5rem"></div>
     </div>
-    <footer class="row-end"><button class="btn ghost" id="btnScanStart"><i data-lucide="scan-line"></i>開始</button><button class="btn" id="btnScanClose"><i data-lucide="x"></i>閉じる</button></footer>
+    <footer class="row-end"><button class="btn ghost" id="btnScanStart"><i data-lucide="scan"></i>開始</button><button class="btn" id="btnScanClose"><i data-lucide="x"></i>閉じる</button></footer>
   </dialog>
 
   <!-- Docs -->
@@ -270,6 +269,8 @@
   <dialog id="dlgTicket" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button><button class="btn" onclick="document.getElementById('dlgTicket').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
   <dialog id="dlgShip" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button><button class="btn" onclick="document.getElementById('dlgShip').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
 
-  <script>document.addEventListener("DOMContentLoaded", ()=>{ if(window.lucide){ lucide.createIcons(); } });</script>
+  <script>
+    document.addEventListener("DOMContentLoaded", ()=>{ if(window.lucide){ lucide.createIcons(); } });
+  </script>
 </body>
 </html>
