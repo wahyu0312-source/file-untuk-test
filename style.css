@@ -6,7 +6,8 @@
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:14px/1.5 'Inter','Segoe UI',Roboto,Helvetica,Arial,sans-serif}
 .hidden{display:none!important}
-.muted{color:var(--muted)} .s{font-size:12px}
+.muted{color:var(--muted)} .s{font-size:12px} .bold{font-weight:600}
+.right{text-align:right;display:inline-block;width:100%}
 .row{display:flex;align-items:center}
 .row-between{display:flex;align-items:center;justify-content:space-between}
 .row-end{display:flex;justify-content:flex-end;gap:.5rem}
@@ -41,32 +42,39 @@ input, select, textarea{width:100%;padding:.75rem;border-radius:12px;border:1px 
 .tile{background:#fff;border:1px solid var(--border);border-radius:12px;padding:.8rem;box-shadow:var(--shadow)}
 .stat-num{font-size:28px;font-weight:700}
 .list > div{display:flex;justify-content:space-between;border-bottom:1px dashed #e6e9f2;padding:.2rem 0}
+.list.header-like > div{border-bottom:1px solid #e6e9f2;padding:.3rem 0 .4rem 0}
 
+/* table */
 .table-wrap{overflow:auto;max-height:60vh;border:1px solid var(--border);border-radius:12px;background:#fff}
 .table{width:100%;border-collapse:collapse}
 .table th,.table td{padding:.6rem;border-bottom:1px solid #edf1f7;vertical-align:middle}
-.badge{display:inline-block;padding:.2rem .5rem;border-radius:10px;background:var(--chip);color:#1b2141}
 
-.grid-chip{background:var(--chip);border:1px solid #e2e7ff;border-radius:10px;padding:.6rem;text-align:center}
-.paper{width:min(860px,96vw);border:0;padding:0;background:#fff;color:#000;border-radius:10px;box-shadow:var(--shadow)}
-.paper .body{padding:16px}
-.paper table{width:100%;border-collapse:collapse}
-.paper th,.paper td{border:1px solid #555;padding:4px 6px;font-size:12px}
+/* badge umum */
+.badge{display:inline-block;padding:.2rem .55rem;border-radius:999px;font-weight:600}
 
-video#scanVideo{width:100%;max-height:48vh;border-radius:12px;background:#000}
+/* warna status terang */
+.badge-status--生産開始{background:#e1f0ff;color:#09407a;border:1px solid #b8d7ff}
+.badge-status--検査保留{background:#fff3cd;color:#7a5b00;border:1px solid #ffe08a}
+.badge-status--検査済{background:#e8fde7;color:#1b5e20;border:1px solid #b8f1b7}
+.badge-status--出荷準備{background:#f3e8ff;color:#5b21b6;border:1px solid #dcc6ff}
+.badge-status--出荷済{background:#e6fffb;color:#065f46;border:1px solid #baf7ef}
+.badge-status--不良品（要リペア）{background:#ffe2e2;color:#7a0414;border:1px solid #ffb5b5}
+
+/* warna proses terang */
+.badge-proc{background:#eef2ff;color:#1e3a8a;border:1px solid #dbe3ff}
+.badge-proc--検査工程{background:#dcfce7;color:#065f46;border:1px solid #b7f5c9}
+.badge-proc--外注{background:#fff7ed;color:#9a3412;border:1px solid #ffdfbf}
+
+/* 操作：2 baris rapi */
+.ops-grid{display:grid;grid-template-columns:repeat(2, minmax(86px,1fr));gap:.35rem .35rem}
+.ops-grid .btn.s{padding:.35rem .5rem;font-size:12px;border-radius:10px}
+
+/* loading */
 .loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.6);backdrop-filter:saturate(1.2) blur(2px)}
 .spinner{width:36px;height:36px;border:3px solid #dbe4ff;border-top-color:#2563eb;border-radius:50%;animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 
-/* 操作：2 baris rapi */
-.ops-grid{
-  display:grid;
-  grid-template-columns:repeat(2, minmax(86px,1fr));
-  gap:.35rem .35rem;
-}
-.ops-grid .btn.s{padding:.35rem .5rem;font-size:12px;border-radius:10px}
-
-/* Print A4 Portrait */
+/* print */
 @media print{
   @page{ size:A4 portrait; margin:12mm }
   nav, .nav, .btn, .input, .row-between > .row, .loading{ display:none !important; }
