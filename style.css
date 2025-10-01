@@ -47,7 +47,7 @@ input, select, textarea{width:100%;padding:.75rem;border-radius:12px;border:1px 
 /* table */
 .table-wrap{overflow:auto;max-height:60vh;border:1px solid var(--border);border-radius:12px;background:#fff}
 .table{width:100%;border-collapse:collapse}
-.table th,.table td{padding:.6rem;border-bottom:1px solid #edf1f7;vertical-align:middle}
+.table th,.table td{padding:.6rem;border-bottom:1px solid #edf1f7;vertical-align:middle;white-space:nowrap}
 
 /* badge umum */
 .badge{display:inline-block;padding:.2rem .55rem;border-radius:999px;font-weight:600}
@@ -70,13 +70,18 @@ input, select, textarea{width:100%;padding:.75rem;border-radius:12px;border:1px 
 .ops-grid .btn.s{padding:.35rem .5rem;font-size:12px;border-radius:10px}
 
 /* loading */
-.loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.6);backdrop-filter:saturate(1.2) blur(2px)}
+.loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.6);backdrop-filter:saturate(1.2) blur(2px);z-index:20}
 .spinner{width:36px;height:36px;border:3px solid #dbe4ff;border-top-color:#2563eb;border-radius:50%;animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
+
+/* dialog */
+.paper{border:none;border-radius:14px;max-width:880px;width:calc(100% - 2rem);padding:0;box-shadow:var(--shadow)}
+.paper .body{padding:1rem 1rem 0 1rem}
+.paper footer{padding:0 1rem 1rem 1rem}
 
 /* print */
 @media print{
   @page{ size:A4 portrait; margin:12mm }
-  nav, .nav, .btn, .input, .row-between > .row, .loading{ display:none !important; }
+  nav, .nav, .btn, .input, .row-between > .row, .loading, #dlgScan{ display:none !important; }
   body{ background:#fff; } .paper{ box-shadow:none; width:auto } .container{ padding:0; }
 }
