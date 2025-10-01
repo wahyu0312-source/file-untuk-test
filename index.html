@@ -6,21 +6,11 @@
   <title>東京精密発條株式会社システム</title>
   <link rel="icon" href="assets/tsh.png">
   <link rel="stylesheet" href="style.css">
-
-  <!-- Libs (CDN) -->
-  <!-- Chart.js hanya dipakai di halaman Chart; tetap preload agar cepat -->
-  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <!-- Libs -->
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
-  <!-- ZXing: scanner yang lebih andal di HP -->
-  <script defer src="https://unpkg.com/@zxing/browser@0.1.4"></script>
-  <!-- Fallbacks -->
   <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-  <!-- Ikon -->
   <script defer src="https://unpkg.com/lucide@latest"></script>
-
   <!-- App -->
   <script defer src="app.js"></script>
 </head>
@@ -35,10 +25,7 @@
       <button id="btnToSales" class="btn ghost hidden"><i data-lucide="file-text"></i>受注</button>
       <button id="btnToPlan" class="btn ghost hidden"><i data-lucide="clipboard-list"></i>計画</button>
       <button id="btnToShip" class="btn ghost hidden"><i data-lucide="truck"></i>出荷</button>
-      <button id="btnShipFormByPO" class="btn ghost grow"><i data-lucide="file-text"></i>出荷確認フォーム（注番）</button>
-<button id="btnShipFormByID" class="btn ghost grow"><i data-lucide="file-text"></i>出荷確認フォーム（出荷ID）</button>
-
-      <button id="btnToInvoice" class="btn ghost hidden"><i data-lucide="file-text"></i>請求</button>
+      <button id="btnToInvoice" class="btn ghost hidden"><i data-lucide="file-invoice"></i>請求</button>
       <button id="btnToCharts" class="btn ghost hidden"><i data-lucide="pie-chart"></i>チャート</button>
       <button id="btnShowStationQR" class="btn ghost hidden"><i data-lucide="qr-code"></i>工程QR</button>
       <span id="userInfo" class="muted"></span>
@@ -59,6 +46,7 @@
         <input id="inUser" placeholder="ユーザー名">
         <input id="inPass" type="password" placeholder="パスワード">
       </div>
+
       <details class="card" style="margin-top:.8rem">
         <summary><strong>管理者: ユーザー追加</strong></summary>
         <div class="grid m1" style="margin-top:.6rem">
@@ -74,6 +62,7 @@
         <button id="btnNewUser" class="btn ghost full"><i data-lucide="user-plus"></i>ユーザー追加</button>
         <p class="muted s">初回: <code>admin / admin123</code>（Users空なら自動作成。部門=生産技術）</p>
       </details>
+
       <button id="btnLogin" class="btn primary full" style="margin-top:.8rem"><i data-lucide="log-in"></i>ログイン</button>
     </section>
   </main>
@@ -98,14 +87,6 @@
           <tbody id="tbOrders"></tbody>
         </table>
       </div>
-      <div class="tile">
-  <div class="row-between">
-    <div class="muted s">完成品在庫（明細）</div>
-    <button class="btn ghost s" id="btnExportFinished"><i data-lucide="download"></i>CSV</button>
-  </div>
-  <div id="listFinished" class="list s"></div>
-</div>
-
     </section>
 
     <section class="card">
@@ -116,19 +97,31 @@
           <button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button>
         </div>
       </header>
+
       <div class="grid-3">
         <div class="stat">
           <div class="muted s">完成品在庫</div>
           <div id="statFinished" class="stat-num">-</div>
           <div class="muted s"><span id="statReady">-</span> 準備 / <span id="statShipped">-</span> 出荷済</div>
         </div>
+
         <div class="tile">
           <div class="muted s">本日の出荷予定</div>
           <div id="listToday" class="list s"></div>
         </div>
+
         <div class="tile">
           <div class="muted s">工程内滞留（現在位置）</div>
           <div id="gridProc" class="grid grid-chips"></div>
+        </div>
+
+        <!-- NEW: Finished stock detail -->
+        <div class="tile" style="grid-column: 1 / -1;">
+          <div class="row-between">
+            <div class="muted s">完成品在庫（明細）</div>
+            <button class="btn ghost s" id="btnExportFinished"><i data-lucide="download"></i>CSV</button>
+          </div>
+          <div id="listFinished" class="list s"></div>
         </div>
       </div>
     </section>
@@ -140,8 +133,6 @@
       <header class="row-between">
         <h3><i data-lucide="file-text"></i> 受注（営業）入力</h3>
         <div class="row gap">
-        <button class="btn ghost" id="btnSalesImport"><i data-lucide="upload"></i>インポートCSV</button>
-<input type="file" id="fileSalesCSV" accept=".csv" class="hidden">
           <button class="btn ghost" id="btnSalesExport"><i data-lucide="download"></i>エクスポート</button>
           <button class="btn primary" id="btnSalesSave"><i data-lucide="save"></i>保存</button>
           <button class="btn" id="btnSalesDelete"><i data-lucide="trash-2"></i>削除</button>
@@ -150,6 +141,7 @@
       </header>
       <div class="grid m1">
         <input id="so_id" placeholder="SO（編集用）">
+        <!-- 注番（受注に紐付け） akan disisipkan oleh app.js: injectSalesPoInput() -->
         <input id="so_date" type="date" placeholder="受注日">
         <input id="so_cust" placeholder="得意先" list="dl_tokui">
         <input id="so_item" placeholder="品名" list="dl_hinmei">
@@ -161,11 +153,17 @@
         <input id="so_note" placeholder="備考">
       </div>
     </section>
+
     <section class="card">
-      <header class="row-between"><h3><i data-lucide="list"></i> 受注一覧</h3><input id="salesQ" placeholder="検索..." class="input"></header>
+      <header class="row-between">
+        <h3><i data-lucide="list"></i> 受注一覧</h3>
+        <input id="salesQ" placeholder="検索..." class="input">
+      </header>
       <div class="table-wrap">
         <table class="table s">
-          <thead><tr><th>SO</th><th>受注日</th><th>得意先</th><th>品名</th><th>品番/図番</th><th>数量</th><th>希望納期</th><th>状態</th><th>注番</th><th>更新</th></tr></thead>
+          <thead>
+            <tr><th>SO</th><th>受注日</th><th>得意先</th><th>品名</th><th>品番/図番</th><th>数量</th><th>希望納期</th><th>状態</th><th>注番</th><th>更新</th></tr>
+          </thead>
           <tbody id="tbSales"></tbody>
         </table>
       </div>
@@ -179,11 +177,8 @@
         <h3><i data-lucide="clipboard-list"></i> 生産計画（生産現品票）</h3>
         <div class="row gap">
           <button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button>
-          <button class="btn ghost" id="btnPlanImport"><i data-lucide="upload"></i>インポートCSV</button>
-<input type="file" id="filePlanCSV" accept=".csv" class="hidden">
-
           <button class="btn ghost" id="btnPlanExport"><i data-lucide="download"></i>エクスポート</button>
-          <button class="btn ghost" id="btnPlanEdit"><i data-lucide="pencil"></i>編集</button>
+          <button class="btn ghost" id="btnPlanEdit"><i data-lucide="file-pen"></i>編集</button>
           <button class="btn primary" id="btnCreateOrder"><i data-lucide="save"></i>保存</button>
           <button class="btn" id="btnPlanDelete"><i data-lucide="trash-2"></i>削除</button>
         </div>
@@ -205,47 +200,33 @@
 
   <!-- Ship -->
   <main id="pageShip" class="container hidden">
-  <section class="card">
-    <header class="row-between">
-      <h3><i data-lucide="truck"></i> 出荷予定 / 出荷確認</h3>
-      <div class="row gap">
-        <button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button>
-        <button class="btn ghost" id="btnShipExport"><i data-lucide="download"></i>エクスポート</button>
-        <button class="btn ghost" id="btnShipEdit"><i data-lucide="file-pen"></i>編集</button>
-        <button class="btn primary" id="btnSchedule"><i data-lucide="save"></i>保存</button>
-        <button class="btn" id="btnShipDelete"><i data-lucide="trash-2"></i>削除</button>
+    <section class="card">
+      <header class="row-between">
+        <h3><i data-lucide="truck"></i> 出荷予定 / 出荷確認</h3>
+        <div class="row gap">
+          <button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button>
+          <button class="btn ghost" id="btnShipExport"><i data-lucide="download"></i>エクスポート</button>
+          <button class="btn ghost" id="btnShipEdit"><i data-lucide="file-pen"></i>編集</button>
+          <button class="btn primary" id="btnSchedule"><i data-lucide="save"></i>保存</button>
+          <button class="btn" id="btnShipDelete"><i data-lucide="trash-2"></i>削除</button>
+        </div>
+      </header>
+      <div class="grid m1">
+        <input id="s_po" placeholder="注番">
+        <input id="s_date" type="date">
+        <input id="s_qty" type="number" min="0" placeholder="数量">
+        <input id="s_shipid" placeholder="出荷ID（編集/削除用）">
       </div>
-    </header>
 
-    <!-- baris 1 -->
-    <div class="grid m1">
-      <input id="s_po" placeholder="注番">
-      <input id="s_date" type="date" placeholder="出荷日">
-      <input id="s_qty" type="number" min="0" placeholder="数量">
-      <input id="s_shipid" placeholder="出荷ID（編集/削除用）">
-    </div>
-
-    <!-- baris 2: field tambahan untuk form -->
-    <div class="grid m1" style="margin-top:.6rem">
-      <input id="s_delivery" type="date" placeholder="納入日">
-      <input id="s_carrier" placeholder="運送会社">
-      <input id="s_dest" placeholder="送り先">
-      <input id="s_note" placeholder="注意">
-      <input id="s_remarks" placeholder="備考">
-    </div>
-
-    <div class="row gap" style="margin-top:.6rem">
-      <button id="btnShipByPO" class="btn ghost grow"><i data-lucide="file-check-2"></i>出荷確認書（注番）</button>
-      <button id="btnShipByID" class="btn ghost grow"><i data-lucide="file-check-2"></i>出荷確認書（出荷ID）</button>
-    </div>
-  </section>
-</main>
-
+      <!-- Tombol lama 出荷確認書（注番/出荷ID） DIHAPUS.
+           Pengganti (出荷確認 印刷/CSV 期間/客先) di-inject oleh app.js -->
+    </section>
+  </main>
 
   <!-- Invoice -->
   <main id="pageInvoice" class="container hidden">
     <section class="card">
-      <header class="row-between"><h3><i data-lucide="file-text"></i> 請求書作成</h3></header>
+      <header class="row-between"><h3><i data-lucide="file-invoice"></i> 請求書作成</h3></header>
       <div class="grid m1">
         <input id="inv_customer" placeholder="得意先" list="dl_tokui">
         <input id="inv_from" type="date" placeholder="期間自">
@@ -261,18 +242,35 @@
         <button id="btnInvCSV" class="btn ghost"><i data-lucide="download"></i>CSV</button>
       </div>
     </section>
+
     <section class="card">
-      <h3><i data-lucide="table-2"></i> 請求明細（単価編集可）</h3>
+      <h3><i data-lucide="rows"></i> 請求明細（単価編集可）</h3>
       <div class="table-wrap">
         <table class="table s" id="tblInv">
           <thead><tr><th>#</th><th>品名</th><th>品番</th><th>図番</th><th>数量</th><th>単価</th><th>金額</th><th>注番</th><th>出荷ID</th></tr></thead>
-        <tbody id="invLines"></tbody>
-        <tfoot>
-          <tr><td colspan="5"></td><td class="muted">小計</td><td id="invSub">0</td><td colspan="2"></td></tr>
-          <tr><td colspan="5"></td><td class="muted">税額(10%)</td><td id="invTax">0</td><td colspan="2"></td></tr>
-          <tr><td colspan="5"></td><td class="muted"><b>合計</b></td><td id="invTotal"><b>0</b></td><td colspan="2"></td></tr>
-        </tfoot>
+          <tbody id="invLines"></tbody>
+          <tfoot>
+            <tr><td colspan="5"></td><td class="muted">小計</td><td id="invSub">0</td><td colspan="2"></td></tr>
+            <tr><td colspan="5"></td><td class="muted">税額(10%)</td><td id="invTax">0</td><td colspan="2"></td></tr>
+            <tr><td colspan="5"></td><td class="muted"><b>合計</b></td><td id="invTotal"><b>0</b></td><td colspan="2"></td></tr>
+          </tfoot>
         </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Charts page -->
+  <main id="pageCharts" class="container hidden">
+    <section class="card">
+      <header class="row-between">
+        <h3><i data-lucide="pie-chart"></i> チャート</h3>
+        <div class="row gap"><button class="btn ghost" id="btnChartsReload"><i data-lucide="refresh-ccw"></i>再読込</button></div>
+      </header>
+      <div class="grid m1">
+        <div class="tile"><canvas id="chartPareto" height="220"></canvas></div>
+        <div class="tile"><canvas id="chartCustomer" height="220"></canvas></div>
+        <div class="tile"><canvas id="chartMonthly" height="220"></canvas></div>
+        <div class="tile"><canvas id="chartStock" height="220"></canvas></div>
       </div>
     </section>
   </main>
@@ -293,62 +291,18 @@
       <div class="row gap" style="margin-top:.5rem">
         <select id="manualProc" class="grow"></select>
         <select id="manualStatus" class="grow"></select>
-        <button id="btnManualApply" class="btn ghost"><i data-lucide="pencil"></i>手動更新</button>
-      </div>
-      <div class="row gap" style="margin-top:.5rem">
-        <input id="fileQR" type="file" accept="image/*" class="hidden">
-        <button class="btn ghost" id="btnScanFromFile"><i data-lucide="image"></i>Dari Gambar</button>
-        <label class="row gap s"><input id="kbMode" type="checkbox"> Scanner Keyboard</label>
+        <button id="btnManualApply" class="btn ghost"><i data-lucide="edit-3"></i>手動更新</button>
       </div>
       <div id="scanResult" class="muted s" style="margin-top:.5rem"></div>
     </div>
-    <footer class="row-end"><button class="btn ghost" id="btnScanStart"><i data-lucide="scan"></i>開始</button><button class="btn" id="btnScanClose"><i data-lucide="x"></i>閉じる</button></footer>
+    <footer class="row-end"><button class="btn ghost" id="btnScanStart"><i data-lucide="scan-line"></i>開始</button><button class="btn" id="btnScanClose"><i data-lucide="x"></i>閉じる</button></footer>
   </dialog>
 
-  <!-- Docs -->
+  <!-- History & Generic Docs -->
   <dialog id="dlgHistory" class="paper"><div class="body"><h3>更新履歴</h3><div id="histBody"></div></div><footer class="row-end"><button class="btn" onclick="document.getElementById('dlgHistory').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
   <dialog id="dlgTicket" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button><button class="btn" onclick="document.getElementById('dlgTicket').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
   <dialog id="dlgShip" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button><button class="btn" onclick="document.getElementById('dlgShip').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
-<!-- Ship Confirmation Form (printable) -->
-<dialog id="dlgShipForm" class="paper formA4">
-  <div class="body">
-    <h2 style="text-align:center;margin:.2rem 0 .6rem 0">出荷確認書</h2>
-
-    <div class="grid grid-2-tight">
-      <div><label class="lbl">顧客名</label><input id="f_cust" placeholder=""></div>
-      <div><label class="lbl">運送会社</label><input id="f_carrier" placeholder=""></div>
-      <div><label class="lbl">出荷日</label><input id="f_shipdate" type="date"></div>
-      <div><label class="lbl">納入日</label><input id="f_delvdate" type="date"></div>
-    </div>
-
-    <div class="muted s" style="margin:.6rem 0 .2rem 0">▼▼▼ 以下の通り出荷致します ▼▼▼</div>
-
-    <div class="table-wrap" style="max-height:none;border:1px solid #555">
-      <table class="table s table-lines" id="tblShipForm">
-        <thead>
-          <tr>
-            <th>図番</th>
-            <th>機種</th>
-            <th>商品名</th>
-            <th style="width:90px">数量</th>
-            <th>送り先</th>
-            <th>注意</th>
-            <th>備考</th>
-          </tr>
-        </thead>
-        <tbody id="shipFormLines"></tbody>
-      </table>
-    </div>
-
-    <div class="row-end" style="margin-top:.6rem">
-      <button class="btn ghost" id="btnAddShipFormLine"><i data-lucide="plus"></i>行追加</button>
-      <button class="btn primary" id="btnPrintShipForm"><i data-lucide="printer"></i>印刷</button>
-      <button class="btn" id="btnCloseShipForm"><i data-lucide="x"></i>閉じる</button>
-    </div>
-  </div>
-</dialog>
 
   <script>document.addEventListener("DOMContentLoaded", ()=>{ if(window.lucide){ lucide.createIcons(); } });</script>
-  
 </body>
 </html>
