@@ -6,7 +6,6 @@
   <title>東京精密発條株式会社システム</title>
   <link rel="icon" href="assets/tsh.png">
   <link rel="stylesheet" href="style.css">
-  <!-- Charts & helpers -->
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -34,7 +33,6 @@
     </div>
   </nav>
 
-  <!-- Loading spinner -->
   <div id="loading" class="loading hidden"><div class="spinner"></div></div>
 
   <!-- Auth -->
@@ -71,6 +69,11 @@
         <h3><i data-lucide="list"></i> 生産一覧</h3>
         <div class="row gap">
           <input id="searchQ" placeholder="検索（注番・品番…）" class="input">
+          <div class="row gap s">
+            <button class="btn ghost" id="pgPrev"><i data-lucide="chevron-left"></i>前</button>
+            <span id="pgInfo" class="muted">0-0/0</span>
+            <button class="btn ghost" id="pgNext">次<i data-lucide="chevron-right"></i></button>
+          </div>
           <button class="btn ghost" id="btnExportOrders"><i data-lucide="download"></i>注文CSV</button>
           <button class="btn ghost" id="btnExportShip"><i data-lucide="download"></i>本日出荷CSV</button>
         </div>
@@ -105,9 +108,7 @@
         </div>
 
         <div class="tile">
-          <div class="row-between">
-            <div class="muted s">本日の出荷予定</div>
-          </div>
+          <div class="row-between"><div class="muted s">本日の出荷予定</div></div>
           <div id="listToday" class="list s"></div>
         </div>
 
@@ -116,7 +117,6 @@
           <div id="gridProc" class="grid grid-chips"></div>
         </div>
 
-        <!-- 完成品在庫（明細） - TABLE VIEW -->
         <div class="tile" style="grid-column: 1 / -1;">
           <div class="row-between">
             <div class="muted s">完成品在庫（明細）</div>
@@ -138,11 +138,16 @@
     </section>
   </main>
 
+  <!-- Simple pages so buttons tidak popup lagi -->
+  <main id="pageSales" class="container hidden"><section class="card"><h3><i data-lucide="file-text"></i> 受注</h3><p class="muted s">（簡易ページ）</p></section></main>
+  <main id="pagePlan"  class="container hidden"><section class="card"><h3><i data-lucide="clipboard-list"></i> 計画</h3><p class="muted s">（簡易ページ）</p></section></main>
+  <main id="pageShip"  class="container hidden"><section class="card"><h3><i data-lucide="truck"></i> 出荷</h3><p class="muted s">（簡易ページ）</p></section></main>
+  <main id="pageInvoice" class="container hidden"><section class="card"><h3><i data-lucide="file-invoice"></i> 請求</h3><p class="muted s">（簡易ページ）</p></section></main>
+  <main id="pageCharts" class="container hidden"><section class="card"><h3><i data-lucide="pie-chart"></i> チャート</h3><p class="muted s">（簡易ページ）</p></section></main>
+
   <!-- Dialogs -->
   <dialog id="dlgHistory" class="paper"><div class="body"><h3>更新履歴</h3><div id="histBody"></div></div><footer class="row-end"><button class="btn" onclick="document.getElementById('dlgHistory').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
   <dialog id="dlgTicket" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button><button class="btn" onclick="document.getElementById('dlgTicket').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
   <dialog id="dlgShip" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button><button class="btn" onclick="document.getElementById('dlgShip').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
-
-  <script>document.addEventListener("DOMContentLoaded", ()=>{ if(window.lucide){ lucide.createIcons(); } });</script>
 </body>
 </html>
