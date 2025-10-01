@@ -190,7 +190,33 @@ async function refreshAll(keep=false){
     await renderOrders();
     await renderSales();
     await renderFinishedDetail(); // detail finished stock
+    await loadFinishedStock();
   }catch(e){ console.error(e); }
+}
+async function loadFinishedStock(){
+  try{
+    const rows = await apiGet({action:'finishedStockList'});
+    const el = $('#listFinished');
+    if(!rows.length){
+      el.innerHTML = '<div class="muted">（現在なし）</div>';
+    }else{
+      // Tampilkan: 注番 / 得意先  |  品名 / 図番
+      el.innerHTML = rows.map(r=>`
+        <div>
+          <span><b>${r.po_id}</b>・${r['得意先']||''}</span>
+          <span>${r['品名']||''} ／ ${r['図番']||''}</span>
+        </div>
+      `).join('');
+    }
+    // Export CSV tombol pada dashboard
+    const btn = $('#btnExportFinished');
+    if(btn){
+      btn.onclick = ()=> downloadCSV('finished_stock_detail.csv', rows);
+    }
+  }catch(e){
+    console.warn('finishedStockList error:', e);
+    $('#listFinished').innerHTML = '<div class="muted">読込エラー</div>';
+  }
 }
 
 async function listOrders(){
