@@ -3,13 +3,8 @@
   --primary:#2563eb; --primary-hover:#1d4ed8; --chip:#eff6ff;
   --radius:14px; --shadow:0 2px 6px rgba(0,0,0,0.05);
 
-  /* --- badge colors (bright) --- */
-  --st-start:#e0f2fe;     /* 生産開始 */
-  --st-hold:#fee2e2;      /* 検査保留 */
-  --st-done:#dcfce7;      /* 検査済 */
-  --st-ready:#fff7ed;     /* 出荷準備 */
-  --st-shipped:#ede9fe;   /* 出荷済 */
-  --st-ng:#ffe4e6;        /* 不良 */
+  /* status colors */
+  --st-start:#e0f2fe; --st-hold:#fee2e2; --st-done:#dcfce7; --st-ready:#fff7ed; --st-shipped:#ede9fe; --st-ng:#ffe4e6;
   --proc:#e9efff;
 }
 *{box-sizing:border-box}
@@ -55,7 +50,7 @@ input, select, textarea{width:100%;padding:.75rem;border-radius:12px;border:1px 
 .table{width:100%;border-collapse:collapse}
 .table th,.table td{padding:.6rem;border-bottom:1px solid #edf1f7;vertical-align:middle}
 
-/* --- badges --- */
+/* badges */
 .badge{display:inline-block;padding:.22rem .55rem;border-radius:12px;color:#0f172a;font-weight:600}
 .badge.st-start{background:var(--st-start)}
 .badge.st-hold{background:var(--st-hold)}
@@ -63,7 +58,20 @@ input, select, textarea{width:100%;padding:.75rem;border-radius:12px;border:1px 
 .badge.st-ready{background:var(--st-ready)}
 .badge.st-shipped{background:var(--st-shipped)}
 .badge.st-ng{background:var(--st-ng)}
+
+/* 工程 badge: warna per-proses */
 .badge.proc{background:var(--proc)}
+.badge.proc.p0 {background:#e0f2fe}
+.badge.proc.p1 {background:#dcfce7}
+.badge.proc.p2 {background:#fff7ed}
+.badge.proc.p3 {background:#fae8ff}
+.badge.proc.p4 {background:#fee2e2}
+.badge.proc.p5 {background:#fef9c3}
+.badge.proc.p6 {background:#e9d5ff}
+.badge.proc.p7 {background:#ddf4ff}
+.badge.proc.p8 {background:#e6fffb}
+.badge.proc.p9 {background:#f1f5f9}
+.badge.proc.p10{background:#fde68a33}
 
 /* grid chip */
 .grid-chip{background:var(--chip);border:1px solid #e2e7ff;border-radius:10px;padding:.6rem;text-align:center}
@@ -75,44 +83,30 @@ input, select, textarea{width:100%;padding:.75rem;border-radius:12px;border:1px 
 video#scanVideo{width:100%;max-height:48vh;border-radius:12px;background:#000}
 .loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.6);backdrop-filter:saturate(1.2) blur(2px)}
 .spinner{width:36px;height:36px;border:3px solid #dbe4ff;border-top-color:#2563eb;border-radius:50%;animation:sp 1s linear infinite}
-@keyframes sp{to{transform:rotate(360deg)}}
+@keyframes sp{to{transform:rotate(360deg)}
 
-/* 操作：2 baris rapi */
-.ops-grid{
-  display:grid;
-  grid-template-columns:repeat(2, minmax(86px,1fr));
-  gap:.35rem .35rem;
-}
+/* 操作：2 baris rapi + warna per proses */
+.ops-grid{ display:grid; grid-template-columns:repeat(2, minmax(86px,1fr)); gap:.35rem }
 .ops-grid .btn.s{padding:.35rem .5rem;font-size:12px;border-radius:10px}
+.ops-box{ padding:.45rem;border-radius:12px;border:1px solid var(--ops-border, var(--border)); background:var(--ops-bg, #fff); }
+.ops-box .btn.ghost{ border-color:var(--ops-border, var(--border)); }
+.ops-box.p0 { --ops-bg:#e0f2fe; --ops-border:#93c5fd; }
+.ops-box.p1 { --ops-bg:#dcfce7; --ops-border:#86efac; }
+.ops-box.p2 { --ops-bg:#fff7ed; --ops-border:#fdba74; }
+.ops-box.p3 { --ops-bg:#fae8ff; --ops-border:#f0abfc; }
+.ops-box.p4 { --ops-bg:#fee2e2; --ops-border:#fca5a5; }
+.ops-box.p5 { --ops-bg:#fef9c3; --ops-border:#fde68a; }
+.ops-box.p6 { --ops-bg:#e9d5ff; --ops-border:#c4b5fd; }
+.ops-box.p7 { --ops-bg:#ddf4ff; --ops-border:#93e0ff; }
+.ops-box.p8 { --ops-bg:#e6fffb; --ops-border:#99f6e4; }
+.ops-box.p9 { --ops-bg:#f1f5f9; --ops-border:#cbd5e1; }
+.ops-box.p10{ --ops-bg:#fde68a33; --ops-border:#f59e0b; }
 
-/* ==== NEW: warna per-proses pada kotak 操作 ==== */
-.ops-box{
-  padding:.45rem;
-  border-radius:12px;
-  border:1px solid var(--ops-border, var(--border));
-  background:var(--ops-bg, #fff);
-}
-.ops-box .btn.ghost{
-  border-color:var(--ops-border, var(--border));
-}
-.ops-box .btn.ghost:hover{
-  background:rgba(255,255,255,.7);
-}
+/* Urgent highlight */
+tr.urgent { outline:2px solid #ef4444; outline-offset:-2px; }
+.badge.urgent { background:#fecaca; color:#7f1d1d; }
 
-/* 11 proses => 11 palet lembut */
-.ops-box.p0 { --ops-bg:#e0f2fe; --ops-border:#93c5fd; } /* レーザ加工 */
-.ops-box.p1 { --ops-bg:#dcfce7; --ops-border:#86efac; } /* 曲げ加工 */
-.ops-box.p2 { --ops-bg:#fff7ed; --ops-border:#fdba74; } /* 外枠組立 */
-.ops-box.p3 { --ops-bg:#fae8ff; --ops-border:#f0abfc; } /* シャッター組立 */
-.ops-box.p4 { --ops-bg:#fee2e2; --ops-border:#fca5a5; } /* シャッター溶接 */
-.ops-box.p5 { --ops-bg:#fef9c3; --ops-border:#fde68a; } /* コーキング */
-.ops-box.p6 { --ops-bg:#e9d5ff; --ops-border:#c4b5fd; } /* 外枠塗装 */
-.ops-box.p7 { --ops-bg:#ddf4ff; --ops-border:#93e0ff; } /* 組立（中） */
-.ops-box.p8 { --ops-bg:#e6fffb; --ops-border:#99f6e4; } /* 組立（済） */
-.ops-box.p9 { --ops-bg:#f1f5f9; --ops-border:#cbd5e1; } /* 外注 */
-.ops-box.p10{ --ops-bg:#fde68a33; --ops-border:#f59e0b; } /* 検査工程 */
-
-/* Print A4 Portrait */
+/* Print */
 @media print{
   @page{ size:A4 portrait; margin:12mm }
   nav, .nav, .btn, .input, .row-between > .row, .loading{ display:none !important; }
