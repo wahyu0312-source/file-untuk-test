@@ -35,6 +35,9 @@
       <button id="btnToSales" class="btn ghost hidden"><i data-lucide="file-text"></i>受注</button>
       <button id="btnToPlan" class="btn ghost hidden"><i data-lucide="clipboard-list"></i>計画</button>
       <button id="btnToShip" class="btn ghost hidden"><i data-lucide="truck"></i>出荷</button>
+      <button id="btnShipFormByPO" class="btn ghost grow"><i data-lucide="file-text"></i>出荷確認フォーム（注番）</button>
+<button id="btnShipFormByID" class="btn ghost grow"><i data-lucide="file-text"></i>出荷確認フォーム（出荷ID）</button>
+
       <button id="btnToInvoice" class="btn ghost hidden"><i data-lucide="file-text"></i>請求</button>
       <button id="btnToCharts" class="btn ghost hidden"><i data-lucide="pie-chart"></i>チャート</button>
       <button id="btnShowStationQR" class="btn ghost hidden"><i data-lucide="qr-code"></i>工程QR</button>
@@ -298,7 +301,46 @@
   <dialog id="dlgHistory" class="paper"><div class="body"><h3>更新履歴</h3><div id="histBody"></div></div><footer class="row-end"><button class="btn" onclick="document.getElementById('dlgHistory').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
   <dialog id="dlgTicket" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button><button class="btn" onclick="document.getElementById('dlgTicket').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
   <dialog id="dlgShip" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button><button class="btn" onclick="document.getElementById('dlgShip').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
+<!-- Ship Confirmation Form (printable) -->
+<dialog id="dlgShipForm" class="paper formA4">
+  <div class="body">
+    <h2 style="text-align:center;margin:.2rem 0 .6rem 0">出荷確認書</h2>
+
+    <div class="grid grid-2-tight">
+      <div><label class="lbl">顧客名</label><input id="f_cust" placeholder=""></div>
+      <div><label class="lbl">運送会社</label><input id="f_carrier" placeholder=""></div>
+      <div><label class="lbl">出荷日</label><input id="f_shipdate" type="date"></div>
+      <div><label class="lbl">納入日</label><input id="f_delvdate" type="date"></div>
+    </div>
+
+    <div class="muted s" style="margin:.6rem 0 .2rem 0">▼▼▼ 以下の通り出荷致します ▼▼▼</div>
+
+    <div class="table-wrap" style="max-height:none;border:1px solid #555">
+      <table class="table s table-lines" id="tblShipForm">
+        <thead>
+          <tr>
+            <th>図番</th>
+            <th>機種</th>
+            <th>商品名</th>
+            <th style="width:90px">数量</th>
+            <th>送り先</th>
+            <th>注意</th>
+            <th>備考</th>
+          </tr>
+        </thead>
+        <tbody id="shipFormLines"></tbody>
+      </table>
+    </div>
+
+    <div class="row-end" style="margin-top:.6rem">
+      <button class="btn ghost" id="btnAddShipFormLine"><i data-lucide="plus"></i>行追加</button>
+      <button class="btn primary" id="btnPrintShipForm"><i data-lucide="printer"></i>印刷</button>
+      <button class="btn" id="btnCloseShipForm"><i data-lucide="x"></i>閉じる</button>
+    </div>
+  </div>
+</dialog>
 
   <script>document.addEventListener("DOMContentLoaded", ()=>{ if(window.lucide){ lucide.createIcons(); } });</script>
+  
 </body>
 </html>
