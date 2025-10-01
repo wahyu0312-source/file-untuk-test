@@ -119,5 +119,19 @@ video#scanVideo{width:100%;max-height:48vh;border-radius:12px;background:#000}
   border:1px solid #333; padding:4px 6px; font-size:12px;
 }
 .paper .ship-lines thead th{ background:#f1f5ff; }
+/* Ship Form A4 layout */
+.formA4 .lbl{display:block;font-size:12px;color:#555;margin-bottom:2px}
+.grid-2-tight{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.table-lines th,.table-lines td{border:1px solid #555}
+.table-lines th{background:#f5f7fb}
+
+@media print{
+  /* Saat print, hanya dialog form yang tampil */
+  body > *:not(.formA4){ display:none !important; }
+  .formA4{ box-shadow:none; width:auto; }
+  .formA4 .body{ padding:0; }
+  .formA4 .row-end{ display:none; }
+  .formA4 input, .formA4 textarea{ border:0; }
+}
 
 }
