@@ -10,9 +10,14 @@
   <!-- Libs -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script defer src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- GANTI URL INI ke Web App kamu (…/exec) -->
+  <script>
+    window.GAS_URL = "https://script.google.com/macros/s/AKfycbzfbArkGJSJXGDhJS4nS2YxOXt9e3OQPCrVE4eUtwaa1dNJ65hRjR8flywr_Uv3gGFdJQ/exec";
+  </script>
 
   <!-- App -->
   <script defer src="app.js"></script>
@@ -26,6 +31,7 @@
     <div class="nav-right">
       <button id="btnToDash"   class="btn ghost hidden"><i data-lucide="layout-dashboard"></i>ダッシュ</button>
       <button id="btnToSales"  class="btn ghost hidden"><i data-lucide="file-text"></i>受注</button>
+      <button id="btnToPlan"   class="btn ghost hidden"><i data-lucide="clipboard-list"></i>計画</button>
       <button id="btnToCharts" class="btn ghost hidden"><i data-lucide="pie-chart"></i>チャート</button>
       <span id="userInfo" class="muted"></span>
       <button id="btnLogout"   class="btn ghost hidden" title="ログアウト"><i data-lucide="log-out"></i></button>
@@ -41,13 +47,13 @@
       <h2>ログイン（スプレッドシートDB）</h2>
       <div class="grid m1">
         <input id="inUser" placeholder="ユーザー名" value="admin">
-        <input id="inPass" type="password" placeholder="パスワード">
+        <input id="inPass" type="password" placeholder="パスワード" value="admin123">
       </div>
       <button id="btnLogin" class="btn primary full" style="margin-top:.8rem">
         <i data-lucide="log-in"></i>ログイン
       </button>
       <p class="muted s" style="margin-top:.6rem">
-        ※ 初回は <code>admin / admin123</code>（Users 空なら自動作成）
+        ※ 初回: <code>admin / admin123</code>（Users 空なら自動作成）
       </p>
     </section>
   </main>
@@ -60,14 +66,17 @@
         <div class="row gap">
           <input id="searchQ" placeholder="検索（注番・品番…）" class="input">
           <button class="btn ghost" id="btnRefresh"><i data-lucide="refresh-ccw"></i>更新</button>
+          <button class="btn ghost" id="btnOpenScanner"><i data-lucide="scan"></i>スキャン</button>
         </div>
       </header>
       <div class="table-wrap" style="max-height:56vh">
         <table class="table s">
-          <thead><tr>
-            <th>注番</th><th>得意先</th><th>製番号</th><th>品名</th><th>品番</th><th>図番</th>
-            <th>状態</th><th>工程</th><th>更新日時</th><th>更新者</th><th>操作</th>
-          </tr></thead>
+          <thead>
+            <tr>
+              <th>注番</th><th>得意先</th><th>製番号</th><th>品名</th>
+              <th>状態</th><th>工程</th><th>更新日時</th><th>更新者</th>
+            </tr>
+          </thead>
           <tbody id="tbOrders"></tbody>
         </table>
       </div>
@@ -80,7 +89,6 @@
           <button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button>
         </div>
       </header>
-
       <div class="grid-3">
         <div class="stat">
           <div class="muted s">完成品在庫</div>
@@ -94,6 +102,10 @@
         <div class="tile">
           <div class="muted s">顧客別出荷数</div>
           <canvas id="chCustomer" height="140"></canvas>
+        </div>
+        <div class="tile">
+          <div class="muted s">工程内滞留（現在位置）</div>
+          <div id="gridProc" class="grid grid-chips"></div>
         </div>
       </div>
     </section>
@@ -143,25 +155,40 @@
     </section>
   </main>
 
+  <!-- PLAN (pakai procClass juga) -->
+  <main id="pagePlan" class="container hidden">
+    <section class="card">
+      <header class="row-between">
+        <h3><i data-lucide="clipboard-list"></i> 生産計画</h3>
+        <div class="row gap">
+          <button class="btn ghost" id="btnPlanRefresh"><i data-lucide="refresh-ccw"></i>更新</button>
+        </div>
+      </header>
+      <div id="planProcGrid" class="grid grid-chips"></div>
+    </section>
+  </main>
+
   <!-- Scan dialog -->
   <dialog id="dlgScan" class="paper">
     <div class="body">
-      <h3>QRスキャン更新（注番: <span id="scanPO"></span>）</h3>
-      <div id="scanHtml5" style="width:100%"></div>
+      <h3>QRスキャン更新</h3>
+      <p class="muted s">工程QRを読み取ると切替され履歴に記録されます。</p>
+      <video id="scanVideo" playsinline muted></video>
+      <canvas id="scanCanvas" class="hidden"></canvas>
       <div class="row gap" style="margin-top:.5rem">
         <input id="fileQR" type="file" accept="image/*" class="hidden">
-        <button class="btn ghost" id="btnScanStart"><i data-lucide="scan"></i>開始</button>
-        <button class="btn ghost" id="btnScanFromFile"><i data-lucide="image"></i>Dari Gambar</button>
+        <button class="btn ghost" id="btnScanFromFile"><i data-lucide="image"></i>画像から</button>
       </div>
       <div id="scanResult" class="muted s" style="margin-top:.5rem"></div>
     </div>
     <footer class="row-end">
+      <button class="btn ghost" id="btnScanStart"><i data-lucide="scan"></i>開始</button>
       <button class="btn" id="btnScanClose"><i data-lucide="x"></i>閉じる</button>
     </footer>
   </dialog>
 
   <script>
-    document.addEventListener("DOMContentLoaded", ()=>{ if(window.lucide){ lucide.createIcons(); } });
+    document.addEventListener("DOMContentLoaded", ()=>{ if (window.lucide) lucide.createIcons(); });
   </script>
 </body>
 </html>
