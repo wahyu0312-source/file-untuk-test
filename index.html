@@ -10,6 +10,9 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <!-- ZXing UMD (global window.ZXing.*) -->
+  <!-- HTML5 QR (fallback bila ZXing gagal) -->
+<script defer src="https://unpkg.com/html5-qrcode@2.3.10/html5-qrcode.min.js"></script>
+
   <script defer src="https://unpkg.com/@zxing/browser@0.1.4/umd/index.min.js"></script>
   <!-- Fallbacks -->
   <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
@@ -260,28 +263,35 @@
   <dialog id="dlgStationQR" class="paper"><div class="body"><h3>工程QR（現場掲示用）</h3><p class="muted s">フォーマット: <code>ST:工程名</code></p><div id="qrWrap" class="grid"></div></div><footer class="row-end"><button class="btn" onclick="document.getElementById('dlgStationQR').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
 
   <dialog id="dlgScan" class="paper">
-    <div class="body">
-      <h3>QRスキャン更新（注番: <span id="scanPO"></span>）</h3>
-      <p class="muted s">工程QRを読み取ると切替され履歴に記録されます。</p>
-      <video id="scanVideo" playsinline muted></video>
-      <canvas id="scanCanvas" class="hidden"></canvas>
-      <div class="row gap" style="margin-top:.5rem">
-        <select id="manualProc" class="grow"></select>
-        <select id="manualStatus" class="grow"></select>
-        <button id="btnManualApply" class="btn ghost"><i data-lucide="pencil"></i>手動更新</button>
-      </div>
-      <div class="row gap" style="margin-top:.5rem">
-        <input id="fileQR" type="file" accept="image/*" class="hidden">
-        <button class="btn ghost" id="btnScanFromFile"><i data-lucide="image"></i>Dari Gambar</button>
-        <label class="row gap s"><input id="kbMode" type="checkbox"> Scanner Keyboard</label>
-      </div>
-      <div id="scanResult" class="muted s" style="margin-top:.5rem"></div>
+  <div class="body">
+    <h3>QRスキャン更新（注番: <span id="scanPO"></span>）</h3>
+    <p class="muted s">工程QRを読み取ると切替され履歴に記録されます。</p>
+
+    <!-- ZXing / BarcodeDetector pakai <video> -->
+    <video id="scanVideo" playsinline muted></video>
+    <canvas id="scanCanvas" class="hidden"></canvas>
+
+    <!-- Fallback html5-qrcode -->
+    <div id="scanHtml5" style="width:100%;max-width:420px;margin:.5rem auto;" class="hidden"></div>
+
+    <div class="row gap" style="margin-top:.5rem">
+      <select id="manualProc" class="grow"></select>
+      <select id="manualStatus" class="grow"></select>
+      <button id="btnManualApply" class="btn ghost"><i data-lucide="pencil"></i>手動更新</button>
     </div>
-    <footer class="row-end">
-      <button class="btn ghost" id="btnScanStart"><i data-lucide="scan"></i>開始</button>
-      <button class="btn" id="btnScanClose"><i data-lucide="x"></i>閉じる</button>
-    </footer>
-  </dialog>
+    <div class="row gap" style="margin-top:.5rem">
+      <input id="fileQR" type="file" accept="image/*" class="hidden">
+      <button class="btn ghost" id="btnScanFromFile"><i data-lucide="image"></i>Dari Gambar</button>
+      <label class="row gap s"><input id="kbMode" type="checkbox"> Scanner Keyboard</label>
+    </div>
+    <div id="scanResult" class="muted s" style="margin-top:.5rem"></div>
+  </div>
+  <footer class="row-end">
+    <button class="btn ghost" id="btnScanStart"><i data-lucide="scan"></i>開始</button>
+    <button class="btn" id="btnScanClose"><i data-lucide="x"></i>閉じる</button>
+  </footer>
+</dialog>
+
 
   <dialog id="dlgHistory" class="paper"><div class="body"><h3>更新履歴</h3><div id="histBody"></div></div><footer class="row-end"><button class="btn" onclick="document.getElementById('dlgHistory').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
   <dialog id="dlgTicket" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button><button class="btn" onclick="document.getElementById('dlgTicket').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
