@@ -6,15 +6,15 @@
   <title>東京精密発條株式会社システム</title>
   <link rel="icon" href="assets/tsh.png">
   <link rel="stylesheet" href="style.css">
-
   <!-- Libs -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- ZXing UMD (global window.ZXing.*) -->
   <script defer src="https://unpkg.com/@zxing/browser@0.1.4/umd/index.min.js"></script>
+  <!-- Fallbacks -->
   <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script defer src="https://unpkg.com/lucide@latest"></script>
-
   <!-- App -->
   <script defer src="app.js"></script>
 </head>
@@ -135,15 +135,15 @@
       </header>
 
       <div class="grid m1">
-        <input id="so_id" placeholder="SO（編集用）">
+        <input id="so_id"   placeholder="SO（編集用）">
         <input id="so_date" type="date" placeholder="受注日">
         <input id="so_cust" placeholder="得意先" list="dl_tokui">
-        <input id="so_item" placeholder="品名" list="dl_hinmei">
-        <input id="so_part" placeholder="品番" list="dl_hinban">
-        <input id="so_drw" placeholder="図番" list="dl_zuban">
-        <input id="so_sei" placeholder="製番号">
-        <input id="so_qty" type="number" placeholder="数量">
-        <input id="so_req" type="date" placeholder="希望納期">
+        <input id="so_item" placeholder="品名"   list="dl_hinmei">
+        <input id="so_part" placeholder="品番"   list="dl_hinban">
+        <input id="so_drw"  placeholder="図番"   list="dl_zuban">
+        <input id="so_sei"  placeholder="製番号">
+        <input id="so_qty"  type="number" placeholder="数量">
+        <input id="so_req"  type="date" placeholder="希望納期">
         <input id="so_note" placeholder="備考">
       </div>
     </section>
@@ -175,18 +175,20 @@
         </div>
       </header>
       <div class="grid m1">
-        <input id="c_po" placeholder="注番（編集用）">
-        <input id="c_tsuchi" placeholder="通知書番号">
-        <input id="c_tokui" placeholder="得意先" list="dl_tokui">
-        <input id="c_tokui_hin" placeholder="得意先品番">
-        <input id="c_sei" placeholder="製番号">
-        <input id="c_hinmei" placeholder="品名" list="dl_hinmei">
-        <input id="c_hinban" placeholder="品番" list="dl_hinban">
-        <input id="c_zuban" placeholder="図番" list="dl_zuban">
-        <input id="c_kanri" placeholder="管理No">
+        <input id="c_po"       placeholder="注番（編集用）">
+        <input id="c_tsuchi"   placeholder="通知書番号">
+        <input id="c_tokui"    placeholder="得意先" list="dl_tokui">
+        <input id="c_tokui_hin"placeholder="得意先品番">
+        <input id="c_sei"      placeholder="製番号">
+        <input id="c_hinmei"   placeholder="品名"   list="dl_hinmei">
+        <input id="c_hinban"   placeholder="品番"   list="dl_hinban">
+        <input id="c_zuban"    placeholder="図番"   list="dl_zuban">
+        <input id="c_kanri"    placeholder="管理No">
       </div>
-      <datalist id="dl_tokui"></datalist><datalist id="dl_hinmei"></datalist>
-      <datalist id="dl_hinban"></datalist><datalist id="dl_zuban"></datalist>
+      <datalist id="dl_tokui"></datalist>
+      <datalist id="dl_hinmei"></datalist>
+      <datalist id="dl_hinban"></datalist>
+      <datalist id="dl_zuban"></datalist>
     </section>
   </main>
 
@@ -206,10 +208,10 @@
         </div>
       </header>
       <div class="grid m1">
-        <input id="s_po" placeholder="注番">
-        <input id="s_date" type="date">
-        <input id="s_qty" type="number" min="0" placeholder="数量">
-        <input id="s_shipid" placeholder="出荷ID（編集/削除用）">
+        <input id="s_po"    placeholder="注番">
+        <input id="s_date"  type="date">
+        <input id="s_qty"   type="number" min="0" placeholder="数量">
+        <input id="s_shipid"placeholder="出荷ID（編集/削除用）">
       </div>
       <div class="row gap" style="margin-top:.6rem">
         <button id="btnShipByPO" class="btn ghost grow"><i data-lucide="file-text"></i>出荷確認書（注番）</button>
@@ -256,7 +258,31 @@
 
   <!-- Dialogs -->
   <dialog id="dlgStationQR" class="paper"><div class="body"><h3>工程QR（現場掲示用）</h3><p class="muted s">フォーマット: <code>ST:工程名</code></p><div id="qrWrap" class="grid"></div></div><footer class="row-end"><button class="btn" onclick="document.getElementById('dlgStationQR').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
-  <dialog id="dlgScan" class="paper"><div class="body"><h3>QRスキャン更新（注番: <span id="scanPO"></span>）</h3><p class="muted s">工程QRを読み取ると切替され履歴に記録されます。</p><video id="scanVideo" playsinline muted></video><canvas id="scanCanvas" class="hidden"></canvas><div class="row gap" style="margin-top:.5rem"><select id="manualProc" class="grow"></select><select id="manualStatus" class="grow"></select><button id="btnManualApply" class="btn ghost"><i data-lucide="pencil"></i>手動更新</button></div><div class="row gap" style="margin-top:.5rem"><input id="fileQR" type="file" accept="image/*" class="hidden"><button class="btn ghost" id="btnScanFromFile"><i data-lucide="image"></i>Dari Gambar</button><label class="row gap s"><input id="kbMode" type="checkbox"> Scanner Keyboard</label></div><div id="scanResult" class="muted s" style="margin-top:.5rem"></div></div><footer class="row-end"><button class="btn ghost" id="btnScanStart"><i data-lucide="scan"></i>開始</button><button class="btn" id="btnScanClose"><i data-lucide="x"></i>閉じる</button></footer></dialog>
+
+  <dialog id="dlgScan" class="paper">
+    <div class="body">
+      <h3>QRスキャン更新（注番: <span id="scanPO"></span>）</h3>
+      <p class="muted s">工程QRを読み取ると切替され履歴に記録されます。</p>
+      <video id="scanVideo" playsinline muted></video>
+      <canvas id="scanCanvas" class="hidden"></canvas>
+      <div class="row gap" style="margin-top:.5rem">
+        <select id="manualProc" class="grow"></select>
+        <select id="manualStatus" class="grow"></select>
+        <button id="btnManualApply" class="btn ghost"><i data-lucide="pencil"></i>手動更新</button>
+      </div>
+      <div class="row gap" style="margin-top:.5rem">
+        <input id="fileQR" type="file" accept="image/*" class="hidden">
+        <button class="btn ghost" id="btnScanFromFile"><i data-lucide="image"></i>Dari Gambar</button>
+        <label class="row gap s"><input id="kbMode" type="checkbox"> Scanner Keyboard</label>
+      </div>
+      <div id="scanResult" class="muted s" style="margin-top:.5rem"></div>
+    </div>
+    <footer class="row-end">
+      <button class="btn ghost" id="btnScanStart"><i data-lucide="scan"></i>開始</button>
+      <button class="btn" id="btnScanClose"><i data-lucide="x"></i>閉じる</button>
+    </footer>
+  </dialog>
+
   <dialog id="dlgHistory" class="paper"><div class="body"><h3>更新履歴</h3><div id="histBody"></div></div><footer class="row-end"><button class="btn" onclick="document.getElementById('dlgHistory').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
   <dialog id="dlgTicket" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button><button class="btn" onclick="document.getElementById('dlgTicket').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
   <dialog id="dlgShip" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button><button class="btn" onclick="document.getElementById('dlgShip').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
