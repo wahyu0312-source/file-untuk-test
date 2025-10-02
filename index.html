@@ -7,15 +7,14 @@
   <link rel="icon" href="assets/tsh.png">
   <link rel="stylesheet" href="style.css">
 
-  <!-- Ikon -->
+  <!-- Icons -->
   <script defer src="https://unpkg.com/lucide@latest"></script>
 
-  <!-- QR Scanner (html5-qrcode) -->
+  <!-- Scanner -->
   <script defer src="https://unpkg.com/html5-qrcode@2.3.10/html5-qrcode.min.js"></script>
-  <!-- Fallback baca QR dari gambar -->
   <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 
-  <!-- Chart (hanya untuk dashboard; aman meski tidak dipakai) -->
+  <!-- Charts -->
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <!-- App -->
@@ -30,18 +29,12 @@
     <div class="nav-right">
       <button id="btnToDash" class="btn ghost hidden"><i data-lucide="layout-dashboard"></i>ダッシュ</button>
       <button id="btnToSales" class="btn ghost hidden"><i data-lucide="file-text"></i>受注</button>
-      <button id="btnToPlan" class="btn ghost hidden"><i data-lucide="clipboard-list"></i>計画</button>
-      <button id="btnToShip" class="btn ghost hidden"><i data-lucide="truck"></i>出荷</button>
-      <button id="btnToInvoice" class="btn ghost hidden"><i data-lucide="file-text"></i>請求</button>
-      <button id="btnShowStationQR" class="btn ghost hidden"><i data-lucide="qr-code"></i>工程QR</button>
+      <button id="btnToCharts" class="btn ghost hidden"><i data-lucide="pie-chart"></i>チャート</button>
       <span id="userInfo" class="muted"></span>
-      <button id="btnAddUserWeb" class="btn ghost hidden" title="ユーザー追加"><i data-lucide="user-plus"></i></button>
-      <button id="btnChangePass" class="btn ghost hidden" title="パスワード変更"><i data-lucide="lock"></i></button>
       <button id="btnLogout" class="btn ghost hidden" title="ログアウト"><i data-lucide="log-out"></i></button>
     </div>
   </nav>
 
-  <!-- Loading -->
   <div id="loading" class="loading hidden"><div class="spinner"></div></div>
 
   <!-- Auth -->
@@ -52,28 +45,13 @@
         <input id="inUser" placeholder="ユーザー名">
         <input id="inPass" type="password" placeholder="パスワード">
       </div>
-      <details class="card" style="margin-top:.8rem">
-        <summary><strong>管理者: ユーザー追加</strong></summary>
-        <div class="grid m1" style="margin-top:.6rem">
-          <input id="nuUser" placeholder="ユーザー名">
-          <input id="nuPass" type="password" placeholder="パスワード">
-          <input id="nuName" placeholder="氏名">
-          <select id="nuDept">
-            <option value="営業">営業</option><option value="生産技術">生産技術</option>
-            <option value="生産管理部">生産管理部</option><option value="製造部">製造部</option><option value="検査部">検査部</option>
-          </select>
-          <select id="nuRole"><option value="member">member</option><option value="manager">manager</option><option value="admin">admin</option></select>
-        </div>
-        <button id="btnNewUser" class="btn ghost full"><i data-lucide="user-plus"></i>ユーザー追加</button>
-        <p class="muted s">初回: <code>admin / admin123</code>（Users空なら自動作成。部門=生産技術）</p>
-      </details>
       <button id="btnLogin" class="btn primary full" style="margin-top:.8rem"><i data-lucide="log-in"></i>ログイン</button>
     </section>
   </main>
 
   <!-- Dashboard -->
   <main id="pageDash" class="container hidden">
-    <section class="card" id="ordersSection">
+    <section class="card">
       <header class="row-between">
         <h3><i data-lucide="list"></i> 生産一覧</h3>
         <div class="row gap">
@@ -83,10 +61,12 @@
       </header>
       <div class="table-wrap" style="max-height:56vh">
         <table class="table s">
-          <thead><tr>
-            <th>注番</th><th>得意先</th><th>製番号</th><th>品名</th><th>品番</th><th>図番</th>
-            <th>状態</th><th>工程</th><th>更新日時</th><th>更新者</th><th>操作</th>
-          </tr></thead>
+          <thead>
+            <tr>
+              <th>注番</th><th>得意先</th><th>製番号</th><th>品名</th><th>品番</th><th>図番</th>
+              <th>状態</th><th>工程</th><th>更新日時</th><th>更新者</th><th>操作</th>
+            </tr>
+          </thead>
           <tbody id="tbOrders"></tbody>
         </table>
       </div>
@@ -99,12 +79,7 @@
       <header class="row-between">
         <h3><i data-lucide="file-text"></i> 受注（営業）入力</h3>
         <div class="row gap">
-          <button class="btn ghost" id="btnSalesImport"><i data-lucide="upload"></i>インポートCSV</button>
-          <input type="file" id="fileSalesCSV" accept=".csv" class="hidden">
-          <button class="btn ghost" id="btnSalesExport"><i data-lucide="download"></i>エクスポート</button>
           <button class="btn primary" id="btnSalesSave"><i data-lucide="save"></i>保存</button>
-          <button class="btn" id="btnSalesDelete"><i data-lucide="trash-2"></i>削除</button>
-          <button class="btn ghost" id="btnPromote"><i data-lucide="arrow-right"></i>計画に変換</button>
         </div>
       </header>
 
@@ -121,7 +96,6 @@
         <input id="so_note" placeholder="備考">
       </div>
 
-      <!-- datalists come from Masters -->
       <datalist id="dl_tokui"></datalist>
       <datalist id="dl_hinmei"></datalist>
       <datalist id="dl_hinban"></datalist>
@@ -142,11 +116,36 @@
     </section>
   </main>
 
-  <!-- Scan dialog (pakai html5-qrcode) -->
+  <!-- Charts -->
+  <main id="pageCharts" class="container hidden">
+    <section class="card">
+      <header class="row-between">
+        <h3><i data-lucide="pie-chart"></i> チャート</h3>
+        <button class="btn ghost" id="btnReloadCharts"><i data-lucide="refresh-ccw"></i>更新</button>
+      </header>
+      <div class="grid-3">
+        <div class="tile">
+          <div class="muted s">月別出荷数</div>
+          <canvas id="chMonthly"></canvas>
+        </div>
+        <div class="tile">
+          <div class="muted s">顧客別出荷数</div>
+          <canvas id="chCustomer"></canvas>
+        </div>
+        <div class="stat">
+          <div class="muted s">完成品在庫</div>
+          <div id="statFinished" class="stat-num">-</div>
+          <div class="muted s"><span id="statReady">-</span> 準備 / <span id="statShipped">-</span> 出荷済</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Scan (html5-qrcode only) -->
   <dialog id="dlgScan" class="paper">
     <div class="body">
       <h3>QRスキャン更新（注番: <span id="scanPO"></span>）</h3>
-      <div id="scanHtml5" style="width:min(420px,94vw);margin:.4rem auto;"></div>
+      <div id="scanHtml5" style="width:min(440px,94vw);margin:.4rem auto;"></div>
       <div class="row gap" style="margin-top:.5rem">
         <input id="fileQR" type="file" accept="image/*" class="hidden">
         <button class="btn ghost" id="btnScanFromFile"><i data-lucide="image"></i>Dari Gambar</button>
@@ -159,8 +158,6 @@
     </footer>
   </dialog>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", ()=>{ if(window.lucide){ lucide.createIcons(); } });
-  </script>
+  <script>document.addEventListener("DOMContentLoaded",()=>{window.lucide&&lucide.createIcons();});</script>
 </body>
 </html>
