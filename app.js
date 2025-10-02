@@ -1,5 +1,5 @@
 /* ===== Config ===== */
-const API_BASE = "PASTE_WEB_APP_URL_DI_SINI";  // /exec
+const API_BASE = "https://script.google.com/macros/s/AKfycbz5OhaBXU2jIn3l9ZZeJLQ_mTZcVDuA_v4pKBO5AUCqGY_VRex4PGzMIrpbLoL6t--M9g/exec";  // /exec
 const API_KEY  = ""; // optional
 
 const PROCESSES = ['レーザ加工','曲げ加工','外枠組立','シャッター組立','シャッター溶接','コーキング','外枠塗装','組立（組立中）','組立（組立済）','外注','検査工程'];
