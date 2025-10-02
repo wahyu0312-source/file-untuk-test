@@ -10,13 +10,11 @@
   <!-- Libs (CDN) -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <!-- ZXing: scanner -->
   <script defer src="https://unpkg.com/@zxing/browser@0.1.4"></script>
-  <!-- Fallbacks -->
   <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <!-- Ikon -->
   <script defer src="https://unpkg.com/lucide@latest"></script>
+
   <!-- App -->
   <script defer src="app.js"></script>
 </head>
@@ -136,6 +134,7 @@
           <button class="btn ghost" id="btnPromote"><i data-lucide="arrow-right"></i>計画に変換</button>
         </div>
       </header>
+
       <div class="grid m1">
         <input id="so_id" placeholder="SO（編集用）">
         <input id="so_date" type="date" placeholder="受注日">
@@ -151,10 +150,7 @@
     </section>
 
     <section class="card">
-      <header class="row-between">
-        <h3><i data-lucide="list"></i> 受注一覧</h3>
-        <input id="salesQ" placeholder="検索..." class="input">
-      </header>
+      <header class="row-between"><h3><i data-lucide="list"></i> 受注一覧</h3><input id="salesQ" placeholder="検索..." class="input"></header>
       <div class="table-wrap">
         <table class="table s">
           <thead><tr><th>SO</th><th>受注日</th><th>得意先</th><th>品名</th><th>品番/図番</th><th>数量</th><th>希望納期</th><th>状態</th><th>注番</th><th>更新</th></tr></thead>
@@ -179,7 +175,6 @@
           <button class="btn" id="btnPlanDelete"><i data-lucide="trash-2"></i>削除</button>
         </div>
       </header>
-
       <div class="grid m1">
         <input id="c_po" placeholder="注番（編集用）">
         <input id="c_tsuchi" placeholder="通知書番号">
@@ -191,11 +186,8 @@
         <input id="c_zuban" placeholder="図番" list="dl_zuban">
         <input id="c_kanri" placeholder="管理No">
       </div>
-
-      <datalist id="dl_tokui"></datalist>
-      <datalist id="dl_hinmei"></datalist>
-      <datalist id="dl_hinban"></datalist>
-      <datalist id="dl_zuban"></datalist>
+      <datalist id="dl_tokui"></datalist><datalist id="dl_hinmei"></datalist>
+      <datalist id="dl_hinban"></datalist><datalist id="dl_zuban"></datalist>
     </section>
   </main>
 
@@ -220,7 +212,6 @@
         <input id="s_qty" type="number" min="0" placeholder="数量">
         <input id="s_shipid" placeholder="出荷ID（編集/削除用）">
       </div>
-
       <div class="row gap" style="margin-top:.6rem">
         <button id="btnShipByPO" class="btn ghost grow"><i data-lucide="file-text"></i>出荷確認書（注番）</button>
         <button id="btnShipByID" class="btn ghost grow"><i data-lucide="file-text"></i>出荷確認書（出荷ID）</button>
@@ -293,7 +284,6 @@
         <button class="btn ghost" id="btnScanFromFile"><i data-lucide="image"></i>Dari Gambar</button>
         <label class="row gap s"><input id="kbMode" type="checkbox"> Scanner Keyboard</label>
       </div>
-
       <div id="scanResult" class="muted s" style="margin-top:.5rem"></div>
     </div>
     <footer class="row-end">
@@ -306,7 +296,5 @@
   <dialog id="dlgHistory" class="paper"><div class="body"><h3>更新履歴</h3><div id="histBody"></div></div><footer class="row-end"><button class="btn" onclick="document.getElementById('dlgHistory').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
   <dialog id="dlgTicket" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button><button class="btn" onclick="document.getElementById('dlgTicket').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
   <dialog id="dlgShip" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()"><i data-lucide="printer"></i>印刷</button><button class="btn" onclick="document.getElementById('dlgShip').close()"><i data-lucide="x"></i>閉じる</button></footer></dialog>
-
-  <script>document.addEventListener("DOMContentLoaded", ()=>{ if(window.lucide){ lucide.createIcons(); } });</script>
 </body>
 </html>
