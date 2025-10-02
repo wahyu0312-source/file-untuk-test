@@ -1,8 +1,3 @@
-/* =======================
- *  Mini ERP Frontend
- *  Sales → Plan → Ship → Invoice
- * ======================= */
-
 // ===== KONFIG =====
 const GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbxQ1vV7lfEAoIPPq09K6a7yCJtSzEtlt6ncjv6K3QG3ydQOeTBdK0u5Hlu1Nme0EKbGnw/exec'; // ganti dengan Web App URL
 const API_KEY = ''; // isi jika Code.gs memakai API_TOKEN
