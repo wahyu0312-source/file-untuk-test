@@ -197,30 +197,151 @@ let INV_CACHE=[]; $('#btnInvPreview').onclick=async()=>{ const cust=$('#inv_cust
 function renderInvoiceLines(rows){ const tb=$('#invLines'); let n=0, sub=0; tb.innerHTML=rows.map(r=>{ const price=Number(r['単価']||0),qty=Number(r['数量']||0),amt=(price||0)*qty; sub+=amt; return `<tr><td>${++n}</td><td>${r['品名']||''}</td><td>${r['品番']||''}</td><td>${r['図番']||''}</td><td contenteditable="true" data-col="数量">${qty}</td><td contenteditable="true" data-col="単価">${price}</td><td>${amt}</td><td>${r['po_id']||''}</td><td>${r['ship_id']||''}</td></tr>`; }).join(''); const tax=Math.round(sub*0.10); $('#invSub').textContent=sub; $('#invTax').textContent=tax; $('#invTotal').textContent=sub+tax; }
 $('#btnInvCSV').onclick=()=>{ const rows=[]; $('#tblInv tbody tr').forEach((tr,i)=>{ const t=tr.querySelectorAll('td'); rows.push({'#':i+1,'品名':t[1].textContent.trim(),'品番':t[2].textContent.trim(),'図番':t[3].textContent.trim(),'数量':t[4].textContent.trim(),'単価':t[5].textContent.trim(),'金額':t[6].textContent.trim(),'注番':t[7].textContent.trim(),'出荷ID':t[8].textContent.trim()}); }); download(`invoice-${fmtDate(new Date())}.csv`,toCSV(rows)); };
 
-/* 13) SCAN */
-let _currentScanPO=null, _codeReader=null;
-function openScan(po){ _currentScanPO=po; $('#scanPO').textContent=po; $('#dlgScan').showModal(); }
-$('#btnScanClose').onclick=()=>{ try{ _codeReader&&_codeReader.reset(); }catch{} _codeReader=null; const v=$('#scanVideo'); if(v.srcObject){ v.srcObject.getTracks().forEach(t=>t.stop()); v.srcObject=null; } $('#dlgScan').close(); };
-$('#btnScanStart').onclick=async()=>{ try{
-  if(window.ZXing && ZXing.BrowserMultiFormatReader){
-    _codeReader=new ZXing.BrowserMultiFormatReader();
-    await _codeReader.decodeFromVideoDevice(undefined,$('#scanVideo'),(res,err)=>{ if(res) handleScanText(res.getText()); });
-    return;
+/* 13) SCAN — ZXing -> html5-qrcode -> BarcodeDetector (urutan prioritas) */
+let _currentScanPO=null, _codeReader=null, _h5=null;
+
+function openScan(po){
+  _currentScanPO=po;
+  $('#scanPO').textContent=po;
+  $('#scanResult').textContent='';
+  // reset tampilan
+  $('#scanVideo').classList.remove('hidden');
+  $('#scanHtml5').classList.add('hidden');
+  $('#scanHtml5').innerHTML='';
+  $('#dlgScan').showModal();
+}
+
+async function stopAllCameras(){
+  try { _codeReader && _codeReader.reset(); } catch {}
+  _codeReader = null;
+  // stop html5-qrcode jika aktif
+  try {
+    if (_h5 && _h5.getState && _h5.getState() !== 0) { // 0: NOT_STARTED
+      await _h5.stop();
+    }
+    if (_h5 && _h5.clear) await _h5.clear();
+  } catch {}
+  _h5 = null;
+
+  const v = $('#scanVideo');
+  if (v && v.srcObject) {
+    v.srcObject.getTracks().forEach(t=>t.stop());
+    v.srcObject = null;
   }
-  if('BarcodeDetector' in window){
-    const video=$('#scanVideo');
-    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-    video.srcObject=stream; await video.play();
-    const det=new BarcodeDetector({formats:['qr_code']});
-    const tick=async()=>{ if(video.readyState===4){ const bmp=await createImageBitmap(video); const codes=await det.detect(bmp); if(codes.length){ handleScanText(codes[0].rawValue); return; } } requestAnimationFrame(tick); };
-    tick(); return;
+}
+
+$('#btnScanClose').onclick = async () => {
+  await stopAllCameras();
+  $('#dlgScan').close();
+};
+
+$('#btnScanStart').onclick = async () => {
+  try{
+    // 1) ZXing (paling stabil di banyak device)
+    if (window.ZXing && ZXing.BrowserMultiFormatReader) {
+      _codeReader = new ZXing.BrowserMultiFormatReader();
+      await _codeReader.decodeFromVideoDevice(
+        { facingMode: 'environment' },
+        $('#scanVideo'),
+        (res, err) => { if (res) handleScanText(res.getText()); }
+      );
+      $('#scanHtml5').classList.add('hidden');
+      $('#scanVideo').classList.remove('hidden');
+      return;
+    }
+
+    // 2) html5-qrcode (fallback populer)
+    if (window.Html5Qrcode) {
+      $('#scanVideo').classList.add('hidden');
+      const box = $('#scanHtml5');
+      box.classList.remove('hidden');
+      _h5 = new Html5Qrcode('scanHtml5', { verbose: false });
+      await _h5.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 240, height: 240 } },
+        (decodedText) => handleScanText(decodedText),
+        () => {} // onDecodeFailure (abaikan)
+      );
+      return;
+    }
+
+    // 3) BarcodeDetector (Chromium 108+)
+    if ('BarcodeDetector' in window) {
+      const video = $('#scanVideo');
+      const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' }});
+      video.srcObject = stream; await video.play();
+      const det = new BarcodeDetector({ formats: ['qr_code'] });
+      const tick = async () => {
+        if (video.readyState === 4) {
+          const bmp = await createImageBitmap(video);
+          const codes = await det.detect(bmp);
+          if (codes.length) { handleScanText(codes[0].rawValue); return; }
+        }
+        requestAnimationFrame(tick);
+      };
+      tick();
+      return;
+    }
+
+    alert('ZXing belum siap dan BarcodeDetector tidak tersedia.');
+  }catch(e){
+    alert('Camera gagal: ' + e.message);
   }
-  alert('ZXing belum siap dan BarcodeDetector tidak tersedia.');
-}catch(e){ alert('Camera gagal: '+e.message); } };
-$('#btnScanFromFile').onclick=()=>$('#fileQR').click();
-$('#fileQR').addEventListener('change',async e=>{ const f=e.target.files[0]; if(!f) return; try{ const txt=await decodeQRFromFile(f); handleScanText(txt); }catch(err){ alert('Gagal baca QR: '+err.message); } });
-async function decodeQRFromFile(file){ const img=new Image(), url=URL.createObjectURL(file); await new Promise((res,rej)=>{ img.onload=()=>res(); img.onerror=()=>rej(new Error('Image load error')); img.src=url; }); const cvs=$('#scanCanvas'),ctx=cvs.getContext('2d'); cvs.width=img.naturalWidth; cvs.height=img.naturalHeight; ctx.drawImage(img,0,0); const d=ctx.getImageData(0,0,cvs.width,cvs.height); const qr=jsQR(d.data,d.width,d.height); URL.revokeObjectURL(url); if(!qr) throw new Error('QR tidak terbaca'); return qr.data; }
-async function handleScanText(text){ $('#scanResult').textContent='Read: '+text; const lines=String(text).split(/\r?\n/).map(s=>s.trim()).filter(Boolean); const upd={}; let note='',proc='',status=''; lines.forEach(l=>{ const [k,...rest]=l.split(':'); const v=rest.join(':').trim(); if(/^ST$/i.test(k)) proc=v; else if(/^STATUS$/i.test(k)) status=v; else if(/^NOTE$/i.test(k)) note=v; else if(/^PO$/i.test(k)) _currentScanPO=v; }); if(!proc&&!status&&lines.length===1&&lines[0].startsWith('ST:')) proc=lines[0].slice(3).trim(); if(proc) upd.current_process=proc; if(status) upd.status=status; if(note) upd.note=note; if(!_currentScanPO) return alert('PO tidak diketahui'); try{ await apiPost({action:'updateOrder',po_id:_currentScanPO,updates:upd,user:CURRENT_USER}); await refreshDashboard(); }catch(e){ alert('Update gagal: '+e.message); } }
+};
+
+$('#btnScanFromFile').onclick = () => $('#fileQR').click();
+$('#fileQR').addEventListener('change', async e => {
+  const f = e.target.files[0]; if(!f) return;
+  try{
+    const txt = await decodeQRFromFile(f);
+    handleScanText(txt);
+  }catch(err){
+    alert('Gagal baca QR: ' + err.message);
+  }
+});
+
+async function decodeQRFromFile(file){
+  const img = new Image(), url = URL.createObjectURL(file);
+  await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+  const cvs = $('#scanCanvas'), ctx = cvs.getContext('2d');
+  cvs.width = img.naturalWidth; cvs.height = img.naturalHeight;
+  ctx.drawImage(img, 0, 0);
+  const d = ctx.getImageData(0, 0, cvs.width, cvs.height);
+  URL.revokeObjectURL(url);
+  const qr = jsQR(d.data, d.width, d.height);
+  if (!qr) throw new Error('QR tidak terbaca');
+  return qr.data;
+}
+
+async function handleScanText(text){
+  $('#scanResult').textContent = 'Read: ' + text;
+  // format: ST:工程名 / STATUS:xxx / NOTE:xxx / (optional) PO:xxxx
+  const lines = String(text).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  const upd = {}; let note='', proc='', status='';
+  lines.forEach(l => {
+    const [k, ...rest] = l.split(':'); const v = rest.join(':').trim();
+    if (/^ST$/i.test(k)) proc = v;
+    else if (/^STATUS$/i.test(k)) status = v;
+    else if (/^NOTE$/i.test(k)) note = v;
+    else if (/^PO$/i.test(k)) _currentScanPO = v;
+  });
+  if (!proc && !status && lines.length === 1 && lines[0].startsWith('ST:')) proc = lines[0].slice(3).trim();
+
+  if (proc)  upd.current_process = proc;
+  if (status)upd.status = status;
+  if (note)  upd.note = note;
+  if (!_currentScanPO) return alert('PO tidak diketahui');
+
+  try{
+    await apiPost({ action:'updateOrder', po_id:_currentScanPO, updates:upd, user:CURRENT_USER });
+    await refreshDashboard();
+    // selesai → matikan kamera supaya hemat baterai
+    await stopAllCameras();
+  }catch(e){
+    alert('Update gagal: ' + e.message);
+  }
+}
+
 
 /* 14) STATION QR */
 $('#btnShowStationQR').onclick=()=>{ const wrap=$('#qrWrap'); wrap.innerHTML=''; UI_PROCESSES.concat(['生産開始','検査保留','検査済','出荷準備','出荷済','不良品（要リペア）']).forEach(p=>{ const box=document.createElement('div'); box.style.padding='8px'; box.style.textAlign='center'; box.style.border='1px solid #e5e7eb'; box.style.borderRadius='10px'; const q=document.createElement('div'); q.style.margin='6px auto'; new QRCode(q,{text:`ST:${p}`,width:120,height:120}); box.innerHTML=`<div class="s muted">${p}</div>`; box.prepend(q); wrap.appendChild(box); }); $('#dlgStationQR').showModal(); };
