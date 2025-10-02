@@ -3,6 +3,9 @@
 /* 1) KONFIG: hardcode GAS URL */
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbxQ1vV7lfEAoIPPq09K6a7yCJtSzEtlt6ncjv6K3QG3ydQOeTBdK0u5Hlu1Nme0EKbGnw/exec';
 const API_KEY  = ''; // isi jika Code.gs memakai API_TOKEN
+// daftar referensi untuk UI (harus sinkron dengan Code.gs)
+const UI_PROCESSES = ['レーザ加工','曲げ加工','外枠組立','シャッター組立','シャッター溶接','コーキング','外枠塗装','組立（組立中）','組立（組立済）','外注','検査工程'];
+const UI_STATUSES  = ['生産開始','検査保留','検査済','出荷準備','出荷済','不良品（要リペア）'];
 
 /* 2) STATE */
 let CURRENT_USER = null;
@@ -118,6 +121,38 @@ $('#tbOrders').addEventListener('click', async e=>{
 });
 $('#btnExportOrders').onclick=()=>download(`orders-${fmtDate(new Date())}.csv`,toCSV(CACHE.orders));
 $('#btnExportShip').onclick=async()=>{ const list=await apiGet({action:'finishedStockList'}); download(`today-ship-${fmtDate(new Date())}.csv`,toCSV(list)); };
+function uniq(list){ return Array.from(new Set(list.filter(Boolean))); }
+
+function fillMastersFromData(){
+  // gabungkan sumber dari Orders + Sales agar datalist terisi
+  const orders = CACHE.orders||[];
+  const sales  = CACHE.sales||[];
+
+  const tokui = uniq([ ...orders.map(o=>o['得意先']), ...sales.map(s=>s['得意先']) ]);
+  const hinmei= uniq([ ...orders.map(o=>o['品名']),   ...sales.map(s=>s['品名']) ]);
+  const hinban= uniq([ ...orders.map(o=>o['品番']),   ...sales.map(s=>s['品番']) ]);
+  const zuban = uniq([ ...orders.map(o=>o['図番']),   ...sales.map(s=>s['図番']) ]);
+
+  const put = (id, arr) => {
+    const dl = document.getElementById(id);
+    if(!dl) return;
+    dl.innerHTML = arr.map(v=>`<option value="${v}">`).join('');
+  };
+  put('dl_tokui', tokui);
+  put('dl_hinmei', hinmei);
+  put('dl_hinban', hinban);
+  put('dl_zuban',  zuban);
+
+  // select di dialog Scan
+  const selProc   = document.getElementById('manualProc');
+  const selStatus = document.getElementById('manualStatus');
+  if(selProc && !selProc.children.length){
+    selProc.innerHTML   = UI_PROCESSES.map(p=>`<option value="${p}">${p}</option>`).join('');
+  }
+  if(selStatus && !selStatus.children.length){
+    selStatus.innerHTML = UI_STATUSES.map(s=>`<option value="${s}">${s}</option>`).join('');
+  }
+}
 
 /* 8) SALES */
 function fillSalesForm(o){ $('#so_id').value=o.so_id||''; $('#so_date').value=fmtDate(o['受注日']); $('#so_cust').value=o['得意先']||''; $('#so_item').value=o['品名']||''; $('#so_part').value=o['品番']||''; $('#so_drw').value=o['図番']||''; $('#so_sei').value=o['製番号']||''; $('#so_qty').value=o['数量']||''; $('#so_req').value=fmtDate(o['希望納期']); $('#so_note').value=o['備考']||''; }
@@ -147,7 +182,8 @@ $('#btnShipDelete').onclick=async()=>{ const id=$('#s_shipid').value; if(!id) re
 $('#btnShipByPO').onclick=async()=>{ const p=$('#s_po').value.trim(); if(!p) return alert('注番を入力'); try{ const d=await apiGet({action:'shipByPo',po_id:p}); $('#dlgShip .body').innerHTML=buildShipDoc(d.order,d.shipment); $('#dlgShip').showModal(); }catch(e){ alert(e.message); } };
 $('#btnShipByID').onclick=async()=>{ const id=$('#s_shipid').value.trim(); if(!id) return alert('出荷IDを入力'); try{ const d=await apiGet({action:'shipById',ship_id:id}); $('#dlgShip .body').innerHTML=buildShipDoc(d.order,d.shipment); $('#dlgShip').showModal(); }catch(e){ alert(e.message); } };
 function buildShipDoc(o,s){ return `<h3>出荷確認書</h3><table><tr><th>出荷ID</th><td>${s.ship_id}</td><th>日付</th><td>${fmtDate(s.scheduled_date)}</td></tr><tr><th>注番</th><td>${o.po_id}</td><th>数量</th><td>${s.qty}</td></tr><tr><th>得意先</th><td>${o['得意先']||''}</td><th>品名</th><td>${o['品名']||''}</td></tr><tr><th>品番/図番</th><td>${o['品番']||''} / ${o['図番']||''}</td><th>製番号</th><td>${o['製番号']||''}</td></tr></table>`; }
-$('#btnShipExport').onclick=async()=>{ const ships=await apiGet({action:'todayShip'}); download(`ship-${fmtDate(new Date())}.csv`,toCSV(ships)); };
+$('#btnShipExport').onclick=async()=>{ const ships=await apiGet({action:'todayShip'}); download(`ship-${fmtDate(new Date())}.csv`,toCSV(ships));fillMastersFromData();
+ };
 $('#btnShipImport').onclick=()=>$('#fileShipCSV').click();
 $('#fileShipCSV').addEventListener('change',async e=>{ const f=e.target.files[0]; if(!f) return; const rows=await parseCSV(f); if(!rows.length) return alert('CSV kosong'); if(!confirm(`Import ${rows.length} baris ke Shipments?`)) return; for(const r of rows){ try{ await apiPost({action:'scheduleShipment',po_id:r['po_id']||r['注番']||'',dateIso:r['scheduled_date']||r['日付']||r['date']||'',qty:r['qty']||r['数量']||0,user:CURRENT_USER}); }catch(err){ console.warn(err.message); } } await refreshDashboard(); alert('Import selesai'); });
 
@@ -160,7 +196,36 @@ $('#btnInvCSV').onclick=()=>{ const rows=[]; $('#tblInv tbody tr').forEach((tr,i
 let _currentScanPO=null, _codeReader=null;
 function openScan(po){ _currentScanPO=po; $('#scanPO').textContent=po; $('#dlgScan').showModal(); }
 $('#btnScanClose').onclick=()=>{ try{ _codeReader&&_codeReader.reset(); }catch{} _codeReader=null; $('#dlgScan').close(); };
-$('#btnScanStart').onclick=async()=>{ try{ if(window.ZXing&&ZXing.BrowserMultiFormatReader){ _codeReader=new ZXing.BrowserMultiFormatReader(); await _codeReader.decodeFromVideoDevice(undefined,$('#scanVideo'),(res,err)=>{ if(res) handleScanText(res.getText()); }); } else alert('ZXing belum siap'); }catch(e){ alert('Camera gagal: '+e.message); } };
+$('#btnScanStart').onclick = async () => {
+  try{
+    if (window.ZXing && ZXing.BrowserMultiFormatReader) {
+      _codeReader = new ZXing.BrowserMultiFormatReader();
+      await _codeReader.decodeFromVideoDevice(undefined, $('#scanVideo'), (res, err) => {
+        if (res) handleScanText(res.getText());
+      });
+      return;
+    }
+    // fallback ke BarcodeDetector (Chromium 108+)
+    if ('BarcodeDetector' in window) {
+      const detector = new BarcodeDetector({ formats: ['qr_code'] });
+      const video = $('#scanVideo');
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:'environment' }});
+      video.srcObject = stream; await video.play();
+      const tick = async () => {
+        if (video.readyState === 4) {
+          const bitmap = await createImageBitmap(video);
+          const codes = await detector.detect(bitmap);
+          if (codes.length) { handleScanText(codes[0].rawValue); return; }
+        }
+        requestAnimationFrame(tick);
+      };
+      tick();
+      return;
+    }
+    alert('ZXing belum siap dan BarcodeDetector tidak tersedia.');
+  }catch(e){ alert('Camera gagal: '+e.message); }
+};
+
 $('#btnScanFromFile').onclick=()=>$('#fileQR').click();
 $('#fileQR').addEventListener('change',async e=>{ const f=e.target.files[0]; if(!f) return; try{ const txt=await decodeQRFromFile(f); handleScanText(txt); }catch(err){ alert('Gagal baca QR: '+err.message); } });
 async function decodeQRFromFile(file){ const img=new Image(), url=URL.createObjectURL(file); await new Promise((res,rej)=>{ img.onload=()=>res(); img.onerror=()=>rej(new Error('Image load error')); img.src=url; }); const cvs=$('#scanCanvas'),ctx=cvs.getContext('2d'); cvs.width=img.naturalWidth; cvs.height=img.naturalHeight; ctx.drawImage(img,0,0); const d=ctx.getImageData(0,0,cvs.width,cvs.height); const qr=jsQR(d.data,d.width,d.height); URL.revokeObjectURL(url); if(!qr) throw new Error('QR tidak terbaca'); return qr.data; }
@@ -184,5 +249,6 @@ $('#btnLogout').onclick=()=>{ CURRENT_USER=null; show($('#authView'),true); ['pa
 $('#btnLogin').onclick=doLogin;
 $('#btnRefresh').onclick=refreshDashboard;
 $('#searchQ').addEventListener('input',refreshDashboard);
-$('#salesQ').addEventListener('input',loadSalesList);
+$('#salesQ').addEventListener('input',loadSalesList);fillMastersFromData();
+
 document.addEventListener('DOMContentLoaded',()=>{ if(window.lucide) lucide.createIcons(); });
