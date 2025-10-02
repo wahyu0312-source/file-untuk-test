@@ -1,6 +1,6 @@
 /* ====== CONFIG ====== */
 const GAS_URL = (localStorage.getItem('GAS_URL')
-  || 'https://script.google.com/macros/s/AKfycbxQ1vV7lfEAoIPPq09K6a7yCJtSzEtlt6ncjv6K3QG3ydQOeTBdK0u5Hlu1Nme0EKbGnw/exec')
+  || 'https://script.google.com/macros/s/AKfycbz7Q6Cs6BYivxPdwDMPBTNTRpF-t6WUDDl5v2Jh7ShbcJZkBVppaWssivnaqiGS_IXwxw/exec')
   .trim();
 
 /* ====== UTILS ====== */
