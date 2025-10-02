@@ -1,7 +1,7 @@
 /* ====== Mini ERP Frontend ====== */
 
 /* 1) KONFIG: hardcode GAS URL */
-const GAS_URL = https://script.google.com/macros/s/AKfycbxQ1vV7lfEAoIPPq09K6a7yCJtSzEtlt6ncjv6K3QG3ydQOeTBdK0u5Hlu1Nme0EKbGnw/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxQ1vV7lfEAoIPPq09K6a7yCJtSzEtlt6ncjv6K3QG3ydQOeTBdK0u5Hlu1Nme0EKbGnw/exec';
 const API_KEY  = ''; // isi jika Code.gs memakai API_TOKEN
 
 /* 2) STATE */
