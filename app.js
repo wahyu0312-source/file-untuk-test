@@ -33,10 +33,26 @@ async function apiGet(params){
 async function apiPost(payload){
   $('#loading').classList.remove('hidden');
   try{
-    const r = await fetch(GAS_URL, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...payload,apiKey:API_KEY})});
-    const j = await r.json(); if(!j.ok) throw new Error(j.error||'API error'); return j.data;
-  }finally{ $('#loading').classList.add('hidden'); }
+    const r = await fetch(GAS_URL, {
+      method: 'POST',
+      // PENTING: kirim sebagai text/plain agar TIDAK preflight CORS
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ ...payload, apiKey: API_KEY }),
+    });
+
+    // GAS (ContentService) mengembalikan text -> parse manual
+    const text = await r.text();
+    let j;
+    try { j = JSON.parse(text); }
+    catch { throw new Error('API parse error: '+text.slice(0,120)); }
+
+    if(!j.ok) throw new Error(j.error || 'API error');
+    return j.data;
+  } finally {
+    $('#loading').classList.add('hidden');
+  }
 }
+
 
 /* 5) AUTH */
 async function doLogin(){
