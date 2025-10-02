@@ -1,5 +1,6 @@
 // ===== KONFIG =====
-const GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbxQ1vV7lfEAoIPPq09K6a7yCJtSzEtlt6ncjv6K3QG3ydQOeTBdK0u5Hlu1Nme0EKbGnw/exec'; // ganti dengan Web App URL
+// sesuaikan dengan URL kamu
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxQ1vV7lfEAoIPPq09K6a7yCJtSzEtlt6ncjv6K3QG3ydQOeTBdK0u5Hlu1Nme0EKbGnw/exec';
 const API_KEY = ''; // isi jika Code.gs memakai API_TOKEN
 
 // ===== STATE =====
@@ -434,8 +435,7 @@ $('#searchQ').addEventListener('input', refreshDashboard);
 $('#salesQ').addEventListener('input', loadSalesList);
 document.addEventListener('DOMContentLoaded', ()=>{
   if(window.lucide){ lucide.createIcons(); }
-  if(!localStorage.getItem('GAS_URL')){
-    const u = prompt('Masukkan GAS WebApp URL (bisa ubah kapan saja di console: localStorage.setItem("GAS_URL","..."))', GAS_URL.includes('PASTE_WEBAPP_URL')?'':GAS_URL);
-    if(u){ localStorage.setItem('GAS_URL', u); location.reload(); }
+});
+
   }
 });
