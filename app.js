@@ -15,7 +15,7 @@ function normalizeGasUrl(u){
   return u;
 }
 
-const GAS_URL = normalizeGasUrl(localStorage.getItem('GAS_URL') || '').trim();
+const GAS_URL = normalizeGasUrl(localStorage.getItem('https://script.google.com/macros/s/AKfycbz7Q6Cs6BYivxPdwDMPBTNTRpF-t6WUDDl5v2Jh7ShbcJZkBVppaWssivnaqiGS_IXwxw/exec') || '').trim();
 
 /* ========= UTILS ========= */
 const $  = s => document.querySelector(s);
