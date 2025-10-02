@@ -12,20 +12,12 @@ const fmt = d => { if(!d) return ''; const t=new Date(d); return isNaN(+t)?'':t.
 
 async function apiGet(params){
   const url = GAS_URL + '?' + new URLSearchParams(params).toString();
-  const res = await fetch(url, { method:'GET' }); // simple request (CORS ok)
+  const res = await fetch(url, { method:'GET' }); // simple request, no preflight
   if(!res.ok) throw new Error('HTTP '+res.status);
   const j = await res.json(); if(!j.ok) throw new Error(j.error||'Server'); return j.data;
 }
-
-// Hindari preflight: Content-Type harus text/plain, tanpa header custom.
-async function apiPost(body){
-  const res = await fetch(GAS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type':'text/plain;charset=utf-8' },
-    body: JSON.stringify(body)
-  });
-  if(!res.ok) throw new Error('HTTP '+res.status);
-  const j = await res.json(); if(!j.ok) throw new Error(j.error||'Server'); return j.data;
+async function apiAction(action, params){  // force GET for writes too
+  return apiGet({ action, ...params });
 }
 
 /* ====== AUTH ====== */
@@ -35,7 +27,7 @@ $('#btnLogin').onclick = async ()=>{
   try{
     loading(true);
     const u=$('#inUser').value.trim(), p=$('#inPass').value.trim();
-    CURRENT_USER = await apiPost({action:'login', username:u, password:p});
+    CURRENT_USER = await apiAction('login', { username:u, password:p });
     show($('#authView'), false);
     ['btnToDash','btnToSales','btnToCharts','btnLogout'].forEach(id=>show($('#'+id), true));
     $('#userInfo').textContent = `${CURRENT_USER.full_name}（${CURRENT_USER.department}）`;
@@ -118,7 +110,10 @@ $('#btnSalesSave').onclick = async ()=>{
       '希望納期': $('#so_req').value || '',
       '備考': $('#so_note').value.trim()
     };
-    const r = await apiPost({action:'createSalesOrder', user:CURRENT_USER, payload});
+    const r = await apiAction('createSalesOrder', {
+      payload: encodeURIComponent(JSON.stringify(payload)),
+      user:    encodeURIComponent(JSON.stringify(CURRENT_USER))
+    });
     alert('保存OK: '+r.so_id);
     loadSalesList();
   }catch(e){ alert(e.message); }
@@ -150,7 +145,7 @@ async function loadSalesList(){
 }
 $('#salesQ').onkeydown = e=>{ if(e.key==='Enter') loadSalesList(); };
 
-/* ====== SCAN (html5-qrcode) ====== */
+/* ====== SCAN ====== */
 let _h5=null, _scanPO=null;
 
 function openScan(po){ _scanPO=po; $('#scanPO').textContent=po; $('#scanResult').textContent=''; $('#dlgScan').showModal(); }
@@ -188,7 +183,15 @@ async function onScanText(text){
   }
   if(!upd.current_process && lines.length===1 && lines[0].startsWith('ST:')) upd.current_process=lines[0].slice(3).trim();
   if(!po) return alert('PO tidak diketahui');
-  try{ await apiPost({action:'updateOrder', po_id:po, updates:upd, user:CURRENT_USER}); await stopScan(); refreshDashboard(); }catch(e){ alert(e.message); }
+
+  try{
+    await apiAction('updateOrder', {
+      po_id:   po,
+      updates: encodeURIComponent(JSON.stringify(upd)),
+      user:    encodeURIComponent(JSON.stringify(CURRENT_USER))
+    });
+    await stopScan(); refreshDashboard();
+  }catch(e){ alert(e.message); }
 }
 
 /* ====== CHARTS ====== */
@@ -211,8 +214,6 @@ $('#btnReloadCharts').onclick = loadCharts;
 
 function renderBar(sel, labels, values, setRef){
   const ctx=$(sel).getContext('2d');
-  if(setRef===undefined) return;
-  const inst=setRef.name==='bound setRef'?null:null; // dummy
   if(sel==='#chMonthly' && chMonthly){ chMonthly.destroy(); }
   if(sel==='#chCustomer'&& chCustomer){ chCustomer.destroy(); }
   const instChart = new Chart(ctx,{ type:'bar', data:{ labels, datasets:[{ label:'数量', data:values }] }, options:{ responsive:true, plugins:{legend:{display:false}} }});
