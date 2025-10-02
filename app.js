@@ -1,55 +1,84 @@
-/* ====== CONFIG ====== */
-const GAS_URL = (localStorage.getItem('GAS_URL')
-  || 'https://script.google.com/macros/s/AKfycbz7Q6Cs6BYivxPdwDMPBTNTRpF-t6WUDDl5v2Jh7ShbcJZkBVppaWssivnaqiGS_IXwxw/exec')
-  .trim();
+/* ========= GAS URL NORMALIZER ========= */
+function normalizeGasUrl(u){
+  if(!u) return '';
+  u = u.trim();
+  // pastikan /exec
+  if(!/\/exec$/.test(u)) u = u.replace(/\/(dev|latest)(\?.*)?$/,'/exec').replace(/\/$/, '') + '/exec';
+  // script.google.com -> script.googleusercontent.com
+  if(u.includes('script.google.com')){
+    u = u
+      .replace('https://script.google.com/macros/s/', 'https://script.googleusercontent.com/macros/echo?user_content_key=')
+      // biar tetap bisa dipakai, kalau ini bukan URL echo maka pengguna harus set ulang;
+      // namun kebanyakan deployment modern redirect ke googleusercontent otomatis saat dipanggil fetch.
+      .replace('/exec','/exec'); // no-op safety
+  }
+  return u;
+}
 
-/* ====== UTILS ====== */
+const GAS_URL = normalizeGasUrl(localStorage.getItem('GAS_URL') || '').trim();
+
+/* ========= UTILS ========= */
 const $  = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 const show = (el, on=true)=> el.classList[on?'remove':'add']('hidden');
-const loading = on => show(document.getElementById('loading'), on);
+const loading = on => show($('#loading'), on);
 const fmt = d => { if(!d) return ''; const t=new Date(d); return isNaN(+t)?'':t.toISOString().slice(0,19).replace('T',' '); };
 
+/* Simple GET (no headers/body) to avoid preflight */
 async function apiGet(params){
-  const url = GAS_URL + '?' + new URLSearchParams(params).toString();
-  const res = await fetch(url, { method:'GET' });
+  const base = localStorage.getItem('GAS_URL') || GAS_URL;
+  const url  = normalizeGasUrl(base) + (params ? ('?' + new URLSearchParams(params)) : '');
+  const res  = await fetch(url, { method:'GET', redirect:'follow' });
   if(!res.ok) throw new Error('HTTP '+res.status);
-  const j = await res.json(); if(!j.ok) throw new Error(j.error||'Server'); return j.data;
+  const j = await res.json();
+  if(!j.ok) throw new Error(j.error||'Server');
+  return j.data;
 }
 async function apiAction(action, params){ return apiGet({ action, ...params }); }
 
-/* ====== AUTH ====== */
+/* ========= AUTH ========= */
 let CURRENT_USER=null;
-document.getElementById('btnLogin').onclick = async ()=>{
+
+async function ensurePing(){
+  try{
+    const d = await apiGet({action:'ping'});
+    return true;
+  }catch(e){
+    alert('GAS_URL belum benar. Set manual di Console:\nlocalStorage.setItem("GAS_URL","<URL /exec>");\nLalu reload.');
+    throw e;
+  }
+}
+
+$('#btnLogin').onclick = async ()=>{
   try{
     loading(true);
-    const u=document.getElementById('inUser').value.trim();
-    const p=document.getElementById('inPass').value.trim();
+    await ensurePing();
+    const u=$('#inUser').value.trim(), p=$('#inPass').value.trim();
     CURRENT_USER = await apiAction('login', { username:u, password:p });
-    show(document.getElementById('authView'), false);
-    ['btnToDash','btnToSales','btnToCharts','btnLogout'].forEach(id=>show(document.getElementById(id), true));
-    document.getElementById('userInfo').textContent = `${CURRENT_USER.full_name}（${CURRENT_USER.department}）`;
+    show($('#authView'), false);
+    ['btnToDash','btnToSales','btnToCharts','btnLogout'].forEach(id=>show($('#'+id), true));
+    $('#userInfo').textContent = `${CURRENT_USER.full_name}（${CURRENT_USER.department}）`;
     bindNav();
-    toPage('pageDash'); refreshDashboard(); loadMasters(); loadSalesList();
+    toPage('pageDash'); refreshDashboard(); loadMasters(); loadSalesList(); loadCharts();
   }catch(e){ alert(e.message); }
   finally{ loading(false); }
 };
 
-document.getElementById('btnLogout').onclick = ()=> location.reload();
+$('#btnLogout').onclick = ()=> location.reload();
 
 function bindNav(){
-  document.getElementById('btnToDash').onclick   = ()=>{ toPage('pageDash'); refreshDashboard(); };
-  document.getElementById('btnToSales').onclick  = ()=>{ toPage('pageSales');  loadSalesList(); };
-  document.getElementById('btnToCharts').onclick = ()=>{ toPage('pageCharts'); loadCharts(); };
+  $('#btnToDash').onclick   = ()=>{ toPage('pageDash');   refreshDashboard(); };
+  $('#btnToSales').onclick  = ()=>{ toPage('pageSales');  loadSalesList(); };
+  $('#btnToCharts').onclick = ()=>{ toPage('pageDash');   loadCharts(); window.scrollTo(0,document.body.scrollHeight); };
 }
-function toPage(id){ ['pageDash','pageSales','pageCharts'].forEach(pid=>show(document.getElementById(pid), pid===id)); }
+function toPage(id){ ['pageDash','pageSales'].forEach(pid=>show($('#'+pid), pid===id)); }
 
-/* ====== DASHBOARD ====== */
+/* ========= DASHBOARD ========= */
 async function refreshDashboard(){
   try{
     loading(true);
-    const rows = await apiGet({action:'listOrders', q: document.getElementById('searchQ').value||''});
-    const tb = document.getElementById('tbOrders'); tb.innerHTML='';
+    const rows = await apiGet({action:'listOrders', q: $('#searchQ').value||''});
+    const tb = $('#tbOrders'); tb.innerHTML='';
     for(const r of rows){
       const tr=document.createElement('tr');
       tr.innerHTML = `
@@ -67,13 +96,13 @@ async function refreshDashboard(){
       tb.appendChild(tr);
     }
     window.lucide&&lucide.createIcons();
-    Array.from(document.querySelectorAll('#tbOrders [data-scan]')).forEach(b=> b.onclick = ()=> openScan(b.dataset.scan));
+    $$('#tbOrders [data-scan]').forEach(b=> b.onclick = ()=> openScan(b.dataset.scan));
   }catch(e){ alert(e.message); }
   finally{ loading(false); }
 }
-document.getElementById('btnRefresh').onclick = refreshDashboard;
+$('#btnRefresh').onclick = refreshDashboard;
 
-/* ====== MASTERS → datalist ====== */
+/* ========= MASTERS (for Sales dropdown) ========= */
 let MASTERS={customer:[],name:[],part:[],drw:[]};
 async function loadMasters(){
   try{
@@ -81,32 +110,40 @@ async function loadMasters(){
     const cs=new Set(), ns=new Set(), ps=new Set(), zs=new Set();
     rows.forEach(r=>{
       if(String(r.is_active).toLowerCase()!=='true') return;
-      const t=String(r.type||'').trim(), name=String(r.name||'').trim(), code=String(r.code||'').trim(), z=String(r.zuban||'').trim();
+      const t=String(r.type||'').trim(), name=String(r.name||'').trim(),
+            code=String(r.code||'').trim(), z=String(r.zuban||'').trim();
       if(t==='得意先'&&(name||code)) cs.add(name||code);
-      if(t==='品名'&&name) ns.add(name);
+      if(t==='品名' && name) ns.add(name);
       if(t==='品番'&&(name||code)) ps.add(name||code);
-      if(t==='図番'&&(name||z)) zs.add(name||z);
+      if(t==='図番'&&(name||z))    zs.add(name||z);
     });
     MASTERS.customer=[...cs]; MASTERS.name=[...ns]; MASTERS.part=[...ps]; MASTERS.drw=[...zs];
-    fillDL('dl_tokui',MASTERS.customer); fillDL('dl_hinmei',MASTERS.name); fillDL('dl_hinban',MASTERS.part); fillDL('dl_zuban',MASTERS.drw);
+    fillDL('dl_tokui',MASTERS.customer);
+    fillDL('dl_hinmei',MASTERS.name);
+    fillDL('dl_hinban',MASTERS.part);
+    fillDL('dl_zuban',MASTERS.drw);
   }catch(e){ console.warn('masters fail:',e.message); }
 }
-function fillDL(id,arr){ const dl=document.getElementById(id); dl.innerHTML=''; arr.sort().forEach(v=>{const o=document.createElement('option');o.value=v;dl.appendChild(o);}); }
+function fillDL(id,arr){
+  const dl=$('#'+id); dl.innerHTML=''; arr.sort().forEach(v=>{
+    const o=document.createElement('option'); o.value=v; dl.appendChild(o);
+  });
+}
 
-/* ====== SALES ====== */
-document.getElementById('btnSalesSave').onclick = async ()=>{
+/* ========= SALES ========= */
+$('#btnSalesSave').onclick = async ()=>{
   try{
     loading(true);
     const payload={
-      '受注日': document.getElementById('so_date').value || new Date().toISOString().slice(0,10),
-      '得意先': document.getElementById('so_cust').value.trim(),
-      '品名':   document.getElementById('so_item').value.trim(),
-      '品番':   document.getElementById('so_part').value.trim(),
-      '図番':   document.getElementById('so_drw').value.trim(),
-      '製番号': document.getElementById('so_sei').value.trim(),
-      '数量':   Number(document.getElementById('so_qty').value||0),
-      '希望納期': document.getElementById('so_req').value || '',
-      '備考': document.getElementById('so_note').value.trim()
+      '受注日': $('#so_date').value || new Date().toISOString().slice(0,10),
+      '得意先': $('#so_cust').value.trim(),
+      '品名':   $('#so_item').value.trim(),
+      '品番':   $('#so_part').value.trim(),
+      '図番':   $('#so_drw').value.trim(),
+      '製番号': $('#so_sei').value.trim(),
+      '数量':   Number($('#so_qty').value||0),
+      '希望納期': $('#so_req').value || '',
+      '備考': $('#so_note').value.trim()
     };
     const r = await apiAction('createSalesOrder', {
       payload: encodeURIComponent(JSON.stringify(payload)),
@@ -121,8 +158,8 @@ document.getElementById('btnSalesSave').onclick = async ()=>{
 async function loadSalesList(){
   try{
     loading(true);
-    const rows = await apiGet({action:'listSales', q: document.getElementById('salesQ').value||''});
-    const tb=document.getElementById('tbSales'); tb.innerHTML='';
+    const rows = await apiGet({action:'listSales', q: $('#salesQ').value||''});
+    const tb=$('#tbSales'); tb.innerHTML='';
     for(const r of rows){
       const tr=document.createElement('tr');
       tr.innerHTML = `
@@ -141,22 +178,22 @@ async function loadSalesList(){
   }catch(e){ alert(e.message); }
   finally{ loading(false); }
 }
-document.getElementById('salesQ').onkeydown = e=>{ if(e.key==='Enter') loadSalesList(); };
+$('#salesQ').onkeydown = e=>{ if(e.key==='Enter') loadSalesList(); };
 
-/* ====== SCAN (html5-qrcode + jsQR fallback) ====== */
+/* ========= SCAN ========= */
 let _h5=null, _scanPO=null;
-function openScan(po){ _scanPO=po; document.getElementById('scanPO').textContent=po; document.getElementById('scanResult').textContent=''; document.getElementById('dlgScan').showModal(); }
+function openScan(po){ _scanPO=po; $('#scanPO').textContent=po; $('#scanResult').textContent=''; $('#dlgScan').showModal(); }
 async function stopScan(){ try{ if(_h5){ await _h5.stop(); await _h5.clear(); } }catch{} _h5=null; }
-document.getElementById('btnScanClose').onclick = async ()=>{ await stopScan(); document.getElementById('dlgScan').close(); };
+$('#btnScanClose').onclick = async ()=>{ await stopScan(); $('#dlgScan').close(); };
 
-document.getElementById('btnScanStart').onclick = async ()=>{
+$('#btnScanStart').onclick = async ()=>{
   try{
     if(!_h5) _h5 = new Html5Qrcode('scanHtml5', { verbose:false });
     await _h5.start({ facingMode:'environment' }, { fps:10, qrbox:{width:240,height:240} }, txt=>onScanText(txt), ()=>{});
   }catch(e){ alert('Camera error: '+e.message); }
 };
-document.getElementById('btnScanFromFile').onclick = ()=> document.getElementById('fileQR').click();
-document.getElementById('fileQR').addEventListener('change', async e=>{
+$('#btnScanFromFile').onclick = ()=> $('#fileQR').click();
+$('#fileQR').addEventListener('change', async e=>{
   const f=e.target.files[0]; if(!f) return;
   try{ const t=await decodeQRFromFile(f); onScanText(t); }catch(err){ alert('Gagal baca QR: '+err.message); }
 });
@@ -168,7 +205,7 @@ async function decodeQRFromFile(file){
   const qr=jsQR(d.data,d.width,d.height); if(!qr) throw new Error('QR tidak terbaca'); return qr.data;
 }
 async function onScanText(text){
-  document.getElementById('scanResult').textContent=text;
+  $('#scanResult').textContent=text;
   const lines=String(text).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
   const upd={}; let po=_scanPO;
   for(const l of lines){
@@ -178,7 +215,6 @@ async function onScanText(text){
     if(/^NOTE$/i.test(k)) upd.note=v;
     if(/^PO$/i.test(k)) po=v;
   }
-  if(!upd.current_process && lines.length===1 && lines[0].startsWith('ST:')) upd.current_process=lines[0].slice(3).trim();
   if(!po) return alert('PO tidak diketahui');
   try{
     await apiAction('updateOrder', {
@@ -190,33 +226,26 @@ async function onScanText(text){
   }catch(e){ alert(e.message); }
 }
 
-/* ====== CHARTS ====== */
+/* ========= CHARTS ========= */
 let chMonthly=null, chCustomer=null;
 async function loadCharts(){
   try{
-    loading(true);
     const stat = await apiGet({action:'stock'});
-    document.getElementById('statFinished').textContent = stat.finishedStock;
-    document.getElementById('statReady').textContent    = stat.ready;
-    document.getElementById('statShipped').textContent  = stat.shipped;
+    $('#statFinished').textContent = stat.finishedStock;
+    $('#statReady').textContent    = stat.ready;
+    $('#statShipped').textContent  = stat.shipped;
+
     const data = await apiGet({action:'charts'});
     renderBar('#chMonthly',  data.monthly.labels,  data.monthly.values,  v=>chMonthly=v);
     renderBar('#chCustomer', data.customer.labels, data.customer.values, v=>chCustomer=v);
-  }catch(e){ alert(e.message); }
-  finally{ loading(false); }
+  }catch(e){ console.warn(e.message); }
 }
-document.getElementById('btnReloadCharts').onclick = loadCharts;
-
 function renderBar(sel, labels, values, setRef){
-  const ctx=document.querySelector(sel).getContext('2d');
-  if(sel==='#chMonthly' && chMonthly){ chMonthly.destroy(); }
-  if(sel==='#chCustomer'&& chCustomer){ chCustomer.destroy(); }
-  const instChart = new Chart(ctx,{
-    type:'bar',
-    data:{ labels, datasets:[{ label:'数量', data:values }] },
-    options:{ responsive:true, plugins:{legend:{display:false}} }
-  });
-  setRef(instChart);
+  const ctx=$(sel).getContext('2d');
+  const prev=(sel==='#chMonthly'?chMonthly:chCustomer); if(prev) prev.destroy();
+  const inst = new Chart(ctx,{ type:'bar', data:{ labels, datasets:[{label:'数量',data:values}]}, options:{responsive:true,plugins:{legend:{display:false}}}});
+  setRef(inst);
 }
 
+/* ========= init ========= */
 window.addEventListener('load', ()=>{ window.lucide&&lucide.createIcons(); });
