@@ -4,58 +4,52 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>東京精密発條株式会社システム</title>
+  <meta name="theme-color" content="#111827">
   <link rel="icon" href="assets/tsh.png">
 
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkfQ+DaZr7ePOYtWGbS6cXWf5Mrdk5lFZ9QXJd2r5PH8WPe9XgYj2RF6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <!-- Preconnect & Preload for faster first paint -->
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preload" as="style" href="style.css">
+  <link rel="preload" as="script" href="app.js">
+
+  <!-- Font Awesome (ikon berwarna dipakai di app.js / style.css) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
   <!-- Styles -->
   <link rel="stylesheet" href="style.css">
 
-  <!-- Charts & QR -->
-  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-  <!-- App -->
+  <!-- App (lib berat diload dinamis di app.js) -->
   <script defer src="app.js"></script>
 </head>
 <body>
   <!-- ================= NAV ================= -->
   <nav class="nav">
     <div class="nav-left">
-      <img src="assets/tsh.png" class="logo" alt="">
+      <img src="assets/tsh.png" class="logo" alt="" loading="lazy" decoding="async">
       <span class="brand">東京精密発條株式会社システム</span>
     </div>
 
     <div class="nav-right">
-      <button id="btnToDash" class="btn ghost hidden"><i class="fa-solid fa-gauge"></i> ダッシュボード</button>
-      <button id="btnToSales" class="btn ghost hidden"><i class="fa-regular fa-handshake"></i> 受注（営業）</button>
-      <button id="btnToPlan"  class="btn ghost hidden"><i class="fa-solid fa-list-check"></i> 生産計画</button>
-      <button id="btnToShip"  class="btn ghost hidden"><i class="fa-solid fa-truck"></i> 出荷予定</button>
-      <button id="btnToInvoice" class="btn ghost hidden"><i class="fa-regular fa-file-lines"></i> 請求書</button>
-      <button id="btnToCharts"  class="btn ghost hidden"><i class="fa-solid fa-chart-simple"></i> 統計</button>
+      <button id="btnToDash" class="btn ghost hidden"><i class="fa-solid fa-gauge" style="color:#60a5fa"></i> ダッシュボード</button>
+      <button id="btnToSales" class="btn ghost hidden"><i class="fa-regular fa-handshake" style="color:#10b981"></i> 受注（営業）</button>
+      <button id="btnToPlan"  class="btn ghost hidden"><i class="fa-solid fa-list-check" style="color:#f59e0b"></i> 生産計画</button>
+      <button id="btnToShip"  class="btn ghost hidden"><i class="fa-solid fa-truck" style="color:#f97316"></i> 出荷予定</button>
+      <button id="btnToInvoice" class="btn ghost hidden"><i class="fa-regular fa-file-lines" style="color:#8b5cf6"></i> 請求書</button>
+      <button id="btnToCharts"  class="btn ghost hidden"><i class="fa-solid fa-chart-simple" style="color:#06b6d4"></i> 統計</button>
 
       <!-- ======== SETTINGS DROPDOWN ======== -->
       <details class="dropdown-inline hidden" id="ddSetting">
         <summary class="btn ghost">
-          <i class="fa-solid fa-gear"></i> 設定
+          <i class="fa-solid fa-gear" style="color:#9ca3af"></i> 設定
           <i class="fa-solid fa-caret-down caret" style="margin-left:.25rem"></i>
         </summary>
         <div class="menu right">
-          <button id="miStationQR" class="menu-item">
-            <i class="fa-solid fa-qrcode"></i> 工程QR
-          </button>
-          <button id="miAddUser" class="menu-item">
-            <i class="fa-solid fa-user-plus"></i> ユーザー追加
-          </button>
-          <button id="miChangePass" class="menu-item">
-            <i class="fa-solid fa-key"></i> パス変更
-          </button>
+          <button id="miStationQR" class="menu-item"><i class="fa-solid fa-qrcode" style="color:#22c55e"></i> 工程QR</button>
+          <button id="miAddUser" class="menu-item"><i class="fa-solid fa-user-plus" style="color:#60a5fa"></i> ユーザー追加</button>
+          <button id="miChangePass" class="menu-item"><i class="fa-solid fa-key" style="color:#f59e0b"></i> パス変更</button>
           <hr style="border:none;border-top:1px solid var(--border);margin:.35rem 0">
-          <button id="btnLogout" class="menu-item">
-            <i class="fa-solid fa-right-from-bracket"></i> ログアウト
-          </button>
+          <button id="btnLogout" class="menu-item"><i class="fa-solid fa-right-from-bracket" style="color:#ef4444"></i> ログアウト</button>
         </div>
       </details>
 
@@ -66,13 +60,13 @@
   <!-- ================= AUTH ================= -->
   <main id="authView" class="container">
     <section class="card card-tight">
-      <h2><i class="fa-solid fa-right-to-bracket"></i> ログイン</h2>
+      <h2><i class="fa-solid fa-right-to-bracket" style="color:#60a5fa"></i> ログイン</h2>
       <div class="grid">
         <input id="inUser" placeholder="ユーザー名">
         <input id="inPass" type="password" placeholder="パスワード">
       </div>
       <details class="card" style="margin-top:.8rem">
-        <summary><strong><i class="fa-solid fa-user-gear"></i> 管理者: ユーザー追加</strong></summary>
+        <summary><strong><i class="fa-solid fa-user-gear" style="color:#8b5cf6"></i> 管理者: ユーザー追加</strong></summary>
         <div class="grid" style="margin-top:.6rem">
           <input id="nuUser" placeholder="ユーザー名">
           <input id="nuPass" type="password" placeholder="パスワード">
@@ -90,7 +84,7 @@
             <option value="admin">admin</option>
           </select>
         </div>
-        <button id="btnNewUser" class="btn ghost full">ユーザー追加</button>
+        <button id="btnNewUser" class="btn ghost full"><i class="fa-solid fa-user-plus" style="color:#60a5fa"></i> ユーザー追加</button>
         <p class="muted s">初回: <code>admin / admin123</code>（Users空なら自動作成。部門=生産技術）</p>
       </details>
       <button id="btnLogin" class="btn primary full" style="margin-top:.8rem">ログイン</button>
@@ -101,11 +95,11 @@
   <main id="pageDash" class="container hidden">
     <section class="card" id="ordersSection">
       <header class="row-between">
-        <h3><i class="fa-solid fa-clipboard-list"></i> オーダー一覧</h3>
+        <h3><i class="fa-solid fa-clipboard-list" style="color:#10b981"></i> オーダー一覧</h3>
         <div class="row gap">
-          <input id="searchQ" placeholder="検索..." class="input">
-          <button class="btn ghost" id="btnExportOrders"><i class="fa-solid fa-file-csv"></i> 注文CSV</button>
-          <button class="btn ghost" id="btnExportShip"><i class="fa-solid fa-file-csv"></i> 本日出荷CSV</button>
+          <input id="searchQ" placeholder="検索..." class="input" aria-label="検索">
+          <button class="btn ghost" id="btnExportOrders"><i class="fa-solid fa-file-csv" style="color:#06b6d4"></i> 注文CSV</button>
+          <button class="btn ghost" id="btnExportShip"><i class="fa-solid fa-file-csv" style="color:#06b6d4"></i> 本日出荷CSV</button>
         </div>
       </header>
 
@@ -131,10 +125,10 @@
 
     <section class="card">
       <header class="row-between">
-        <h3><i class="fa-solid fa-gauge"></i> ダッシュボード</h3>
+        <h3><i class="fa-solid fa-gauge" style="color:#60a5fa"></i> ダッシュボード</h3>
         <div class="row gap">
-          <button class="btn ghost" id="btnRefresh"><i class="fa-solid fa-rotate"></i> 更新</button>
-          <button class="btn ghost" onclick="window.print()"><i class="fa-solid fa-print"></i> 印刷</button>
+          <button class="btn ghost" id="btnRefresh"><i class="fa-solid fa-rotate" style="color:#10b981"></i> 更新</button>
+          <button class="btn ghost" onclick="window.print()"><i class="fa-solid fa-print" style="color:#f59e0b"></i> 印刷</button>
         </div>
       </header>
 
@@ -160,12 +154,12 @@
   <main id="pageSales" class="container hidden">
     <section class="card">
       <header class="row-between">
-        <h3><i class="fa-regular fa-handshake"></i> 受注（営業）入力</h3>
+        <h3><i class="fa-regular fa-handshake" style="color:#10b981"></i> 受注（営業）入力</h3>
         <div class="row gap">
-          <button class="btn ghost" id="btnSalesExport"><i class="fa-solid fa-file-csv"></i> エクスポート</button>
+          <button class="btn ghost" id="btnSalesExport"><i class="fa-solid fa-file-csv" style="color:#06b6d4"></i> エクスポート</button>
           <button class="btn primary" id="btnSalesSave"><i class="fa-solid fa-floppy-disk"></i> 保存（新規/編集保存）</button>
           <button class="btn" id="btnSalesDelete"><i class="fa-solid fa-trash-can"></i> 削除</button>
-          <button class="btn ghost" id="btnPromote"><i class="fa-solid fa-arrow-right-arrow-left"></i> 計画に変換</button>
+          <button class="btn ghost" id="btnPromote"><i class="fa-solid fa-arrow-right-arrow-left" style="color:#8b5cf6"></i> 計画に変換</button>
         </div>
       </header>
 
@@ -185,8 +179,8 @@
 
     <section class="card">
       <header class="row-between">
-        <h3><i class="fa-regular fa-rectangle-list"></i> 受注一覧</h3>
-        <input id="salesQ" placeholder="検索..." class="input">
+        <h3><i class="fa-regular fa-rectangle-list" style="color:#06b6d4"></i> 受注一覧</h3>
+        <input id="salesQ" placeholder="検索..." class="input" aria-label="検索">
       </header>
       <div class="table-wrap">
         <table class="table s">
@@ -205,7 +199,7 @@
   <main id="pagePlan" class="container hidden">
     <section class="card">
       <header class="row-between">
-        <h3><i class="fa-solid fa-list-check"></i> 生産計画（生産現品票）</h3>
+        <h3><i class="fa-solid fa-list-check" style="color:#f59e0b"></i> 生産計画（生産現品票）</h3>
         <div class="row gap">
           <button class="btn ghost" onclick="window.print()"><i class="fa-solid fa-print"></i> 印刷</button>
           <button class="btn ghost" id="btnPlanExport"><i class="fa-solid fa-file-csv"></i> エクスポート</button>
@@ -237,7 +231,7 @@
   <main id="pageShip" class="container hidden">
     <section class="card">
       <header class="row-between">
-        <h3><i class="fa-solid fa-truck"></i> 出荷予定 / 出荷確認</h3>
+        <h3><i class="fa-solid fa-truck" style="color:#f97316"></i> 出荷予定 / 出荷確認</h3>
         <div class="row gap">
           <button class="btn ghost" onclick="window.print()"><i class="fa-solid fa-print"></i> 印刷</button>
           <button class="btn ghost" id="btnShipExport"><i class="fa-solid fa-file-csv"></i> エクスポート</button>
@@ -253,8 +247,8 @@
         <input id="s_shipid" placeholder="Ship ID（編集/削除用）">
       </div>
       <div class="row gap">
-        <button id="btnShipByPO" class="btn ghost grow"><i class="fa-regular fa-file-lines"></i> 出荷確認書（PO）</button>
-        <button id="btnShipByID" class="btn ghost grow"><i class="fa-regular fa-file-lines"></i> 出荷確認書（Ship ID）</button>
+        <button id="btnShipByPO" class="btn ghost grow"><i class="fa-regular fa-file-lines" style="color:#8b5cf6"></i> 出荷確認書（PO）</button>
+        <button id="btnShipByID" class="btn ghost grow"><i class="fa-regular fa-file-lines" style="color:#8b5cf6"></i> 出荷確認書（Ship ID）</button>
       </div>
     </section>
   </main>
@@ -262,7 +256,7 @@
   <!-- ================ INVOICE ================ -->
   <main id="pageInvoice" class="container hidden">
     <section class="card">
-      <header class="row-between"><h3><i class="fa-regular fa-file-lines"></i> 請求書作成</h3></header>
+      <header class="row-between"><h3><i class="fa-regular fa-file-lines" style="color:#8b5cf6"></i> 請求書作成</h3></header>
       <div class="grid">
         <input id="inv_customer" placeholder="得意先" list="dl_tokui">
         <input id="inv_from" type="date" placeholder="期間自">
@@ -272,7 +266,7 @@
         <input id="inv_memo" placeholder="メモ">
       </div>
       <div class="row gap" style="margin-top:.6rem">
-        <button id="btnInvPreview" class="btn ghost"><i class="fa-solid fa-calculator"></i> 集計（出荷済）</button>
+        <button id="btnInvPreview" class="btn ghost"><i class="fa-solid fa-calculator" style="color:#10b981"></i> 集計（出荷済）</button>
         <button id="btnInvCreate" class="btn primary"><i class="fa-solid fa-stamp"></i> 請求書発行</button>
         <button id="btnInvPrint"  class="btn ghost"><i class="fa-solid fa-print"></i> 印刷</button>
         <button id="btnInvCSV"    class="btn ghost"><i class="fa-solid fa-file-csv"></i> CSV</button>
@@ -301,7 +295,7 @@
   <main id="pageCharts" class="container hidden">
     <section class="card">
       <header class="row-between">
-        <h3><i class="fa-solid fa-chart-simple"></i> 統計</h3>
+        <h3><i class="fa-solid fa-chart-simple" style="color:#06b6d4"></i> 統計</h3>
         <div class="row gap">
           <select id="chartYear" class="input" style="width:120px"></select>
           <button id="btnChartsRefresh" class="btn ghost"><i class="fa-solid fa-rotate"></i> 更新</button>
@@ -334,11 +328,14 @@
       <canvas id="scanCanvas" class="hidden"></canvas>
       <div id="scanResult" class="muted s" style="margin-top:.5rem"></div>
     </div>
-    <footer class="row-end"><button class="btn ghost" id="btnScanStart">開始</button><button class="btn" id="btnScanClose">閉じる</button></footer>
+    <footer class="row-end"><button class="btn ghost" id="btnScanStart"><i class="fa-solid fa-qrcode" style="color:#22c55e"></i> 開始</button><button class="btn" id="btnScanClose">閉じる</button></footer>
   </dialog>
 
   <dialog id="dlgHistory" class="paper"><div class="body"><h3>更新履歴</h3><div id="histBody"></div></div><footer class="row-end"><button class="btn" onclick="document.getElementById('dlgHistory').close()">閉じる</button></footer></dialog>
   <dialog id="dlgTicket" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()"><i class="fa-solid fa-print"></i> 印刷</button><button class="btn" onclick="document.getElementById('dlgTicket').close()">閉じる</button></footer></dialog>
   <dialog id="dlgShip" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()"><i class="fa-solid fa-print"></i> 印刷</button><button class="btn" onclick="document.getElementById('dlgShip').close()">閉じる</button></footer></dialog>
+
+  <!-- ===== Branding ===== -->
+  <footer class="brand-footer" aria-label="Branding">Design by Wahyu</footer>
 </body>
 </html>
