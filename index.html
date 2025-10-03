@@ -119,24 +119,177 @@
   </main>
 
   <!-- Sales -->
-  <main id="pageSales" class="container hidden">
-    <!-- … (TIDAK BERUBAH, biarkan sesuai file Anda) … -->
+    <main id="pageSales" class="container hidden">
+    <section class="card">
+      <header class="row-between">
+        <h3><span class="material-symbols-rounded">assignment_add</span> 受注（営業）入力</h3>
+        <div class="row gap wrap">
+          <button class="btn primary" id="btnSalesSave"><span class="material-symbols-rounded">save</span>保存</button>
+          <button class="btn" id="btnSalesDelete"><span class="material-symbols-rounded">delete</span>削除</button>
+          <button class="btn ghost" id="btnPromote"><span class="material-symbols-rounded">upgrade</span>計画に変換</button>
+        </div>
+      </header>
+      <div class="grid">
+        <input id="so_id" placeholder="注番（編集用）">
+        <input id="so_date" type="date" placeholder="受注日">
+        <input id="so_cust" placeholder="得意先" list="dl_tokui">
+        <input id="so_item" placeholder="品名" list="dl_hinmei">
+        <input id="so_part" placeholder="品番" list="dl_hinban">
+        <input id="so_drw"  placeholder="図番" list="dl_zuban">
+        <input id="so_sei"  placeholder="製番号">
+        <input id="so_qty"  type="number" placeholder="数量">
+        <input id="so_req"  type="date" placeholder="希望納期">
+        <input id="so_note" placeholder="備考">
+      </div>
+    </section>
+
+    <section class="card">
+      <header class="row-between"><h3><span class="material-symbols-rounded">view_list</span> 受注一覧</h3><input id="salesQ" placeholder="検索..." class="input"></header>
+      <div class="table-wrap">
+        <table class="table s">
+          <thead><tr><th>注番</th><th>受注日</th><th>得意先</th><th>品名</th><th>品番/図番</th><th>数量</th><th>希望納期</th><th>状態</th><th>計画PO</th><th>更新</th></tr></thead>
+          <tbody id="tbSales"></tbody>
+        </table>
+      </div>
+    </section>
   </main>
 
+
   <!-- Plan -->
-  <main id="pagePlan" class="container hidden">
-    <!-- … -->
+   <main id="pagePlan" class="container hidden">
+    <section class="card">
+      <header class="row-between">
+        <h3><span class="material-symbols-rounded">precision_manufacturing</span> 生産計画（生産現品票）</h3>
+        <div class="row gap wrap">
+          <button class="btn ghost" onclick="window.print()"><span class="material-symbols-rounded">print</span>印刷</button>
+          <button class="btn ghost" id="btnPlanExport"><span class="material-symbols-rounded">database</span>エクスポート</button>
+          <button class="btn ghost" id="btnPlanEdit"><span class="material-symbols-rounded">edit</span>編集</button>
+          <button class="btn primary" id="btnCreateOrder"><span class="material-symbols-rounded">save</span>保存</button>
+          <button class="btn" id="btnPlanDelete"><span class="material-symbols-rounded">delete</span>削除</button>
+        </div>
+      </header>
+      <div class="grid">
+        <input id="c_po" placeholder="注番（編集用）">
+        <input id="c_tsuchi" placeholder="通知書番号">
+        <input id="c_tokui" placeholder="得意先" list="dl_tokui">
+        <input id="c_tokui_hin" placeholder="得意先品番">
+        <input id="c_sei" placeholder="製番号">
+        <input id="c_hinmei" placeholder="品名" list="dl_hinmei">
+        <input id="c_hinban" placeholder="品番" list="dl_hinban">
+        <input id="c_zuban" placeholder="図番" list="dl_zuban">
+        <input id="c_kanri" placeholder="管理No">
+      </div>
+      <datalist id="dl_tokui"></datalist><datalist id="dl_hinmei"></datalist><datalist id="dl_hinban"></datalist><datalist id="dl_zuban"></datalist>
+    </section>
   </main>
+
 
   <!-- Ship -->
   <main id="pageShip" class="container hidden">
-    <!-- … -->
+    <section class="card">
+      <header class="row-between">
+        <h3><span class="material-symbols-rounded">local_shipping</span> 出荷予定 / 出荷確認</h3>
+        <div class="row gap wrap">
+          <button class="btn ghost" onclick="window.print()"><span class="material-symbols-rounded">print</span>印刷</button>
+          <button class="btn ghost" id="btnShipExport"><span class="material-symbols-rounded">database</span>エクスポート</button>
+          <button class="btn ghost" id="btnShipEdit"><span class="material-symbols-rounded">edit</span>編集</button>
+          <button class="btn primary" id="btnSchedule"><span class="material-symbols-rounded">save</span>保存</button>
+          <button class="btn" id="btnShipDelete"><span class="material-symbols-rounded">delete</span>削除</button>
+        </div>
+      </header>
+      <div class="grid">
+        <input id="s_po" placeholder="注番">
+        <input id="s_date" type="date">
+        <input id="s_qty" type="number" min="0" placeholder="数量">
+        <input id="s_shipid" placeholder="Ship ID（編集/削除用）">
+      </div>
+      <div class="row gap">
+        <button id="btnShipByPO" class="btn ghost grow"><span class="material-symbols-rounded">article</span>出荷確認書（注番）</button>
+        <button id="btnShipByID" class="btn ghost grow"><span class="material-symbols-rounded">article</span>出荷確認書（Ship ID）</button>
+      </div>
+    </section>
   </main>
+
 
   <!-- Invoice -->
   <main id="pageInvoice" class="container hidden">
-    <!-- … -->
+    <section class="card">
+      <header class="row-between"><h3><span class="material-symbols-rounded">request_quote</span> 請求書作成</h3></header>
+      <div class="grid">
+        <input id="inv_customer" placeholder="得意先" list="dl_tokui">
+        <input id="inv_from" type="date" placeholder="期間自">
+        <input id="inv_to" type="date" placeholder="期間至">
+        <input id="inv_date" type="date" placeholder="請求日">
+        <input id="inv_currency" placeholder="通貨" value="JPY">
+        <input id="inv_memo" placeholder="メモ">
+      </div>
+      <div class="row gap" style="margin-top:.6rem">
+        <button id="btnInvPreview" class="btn ghost"><span class="material-symbols-rounded">summarize</span>集計（出荷済）</button>
+        <button id="btnInvCreate" class="btn primary"><span class="material-symbols-rounded">print</span>請求書発行</button>
+        <button id="btnInvPrint" class="btn ghost"><span class="material-symbols-rounded">print</span>印刷</button>
+        <button id="btnInvCSV" class="btn ghost"><span class="material-symbols-rounded">dataset</span>CSV</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3><span class="material-symbols-rounded">view_list</span> 請求明細（編集可：単価）</h3>
+      <div class="table-wrap">
+        <table class="table s" id="tblInv">
+          <thead><tr><th>#</th><th>品名</th><th>品番</th><th>図番</th><th>数量</th><th>単価</th><th>金額</th><th>PO</th><th>出荷ID</th></tr></thead>
+          <tbody id="invLines"></tbody>
+          <tfoot><tr><td colspan="5"></td><td class="muted">小計</td><td id="invSub">0</td><td colspan="2"></td></tr>
+                 <tr><td colspan="5"></td><td class="muted">税額(10%)</td><td id="invTax">0</td><td colspan="2"></td></tr>
+                 <tr><td colspan="5"></td><td class="muted"><b>合計</b></td><td id="invTotal"><b>0</b></td><td colspan="2"></td></tr></tfoot>
+        </table>
+      </div>
+    </section>
   </main>
+
+<!-- Stock -->
+  <main id="pageStock" class="container hidden">
+    <section class="card" id="stockSection">
+      <header class="row-between">
+        <h3><span class="material-symbols-rounded">inventory_2</span> 在庫</h3>
+        <div class="row gap wrap">
+          <input id="stockQ" placeholder="検索..." class="input">
+          <button class="btn ghost" id="btnExportStock"><span class="material-symbols-rounded">dataset</span>CSV</button>
+        </div>
+      </header>
+      <div class="table-wrap" style="max-height:55vh">
+        <table class="table s">
+          <thead><tr>
+            <th>注番</th><th>得意先</th><th>製番号</th><th>品名</th><th>品番</th><th>図番</th>
+            <th>状態</th><th>工程</th><th>更新日時</th><th>更新者</th><th>操作</th>
+          </tr></thead>
+          <tbody id="tbStock"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Finished -->
+  <main id="pageFinished" class="container hidden">
+    <section class="card" id="finishedSection">
+      <header class="row-between">
+        <h3><span class="material-symbols-rounded">inventory</span> 完成品一覧</h3>
+        <div class="row gap wrap">
+          <input id="finishedQ" placeholder="検索..." class="input">
+          <button class="btn ghost" id="btnExportFinished"><span class="material-symbols-rounded">dataset</span>CSV</button>
+        </div>
+      </header>
+      <div class="table-wrap" style="max-height:55vh">
+        <table class="table s">
+          <thead><tr>
+            <th>注番</th><th>得意先</th><th>製番号</th><th>品名</th><th>品番</th><th>図番</th>
+            <th>状態</th><th>工程</th><th>更新日時</th><th>更新者</th><th>操作</th>
+          </tr></thead>
+          <tbody id="tbFinished"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+
 
   <!-- ====== NEW: Charts page ====== -->
   <main id="pageCharts" class="container hidden">
@@ -178,11 +331,25 @@
     </section>
   </main>
 
-  <!-- Dialogs (tetap) -->
-  <dialog id="dlgStationQR" class="paper">…</dialog>
-  <dialog id="dlgScan" class="paper">…</dialog>
-  <dialog id="dlgHistory" class="paper">…</dialog>
-  <dialog id="dlgTicket" class="paper">…</dialog>
-  <dialog id="dlgShip" class="paper">…</dialog>
+  <!-- Dialogs -->
+  <dialog id="dlgStationQR" class="paper">
+    <div class="body"><h3>工程QR（現場掲示用）</h3><p class="muted s">フォーマット: <code>ST:工程名</code></p><div id="qrWrap" class="grid"></div></div>
+    <footer class="row-end"><button class="btn" onclick="document.getElementById('dlgStationQR').close()">閉じる</button></footer>
+  </dialog>
+
+  <dialog id="dlgScan" class="paper">
+    <div class="body">
+      <h3>QRスキャン更新（注番: <span id="scanPO"></span>）</h3>
+      <p class="muted s">工程QRを読み取ると切替され履歴に記録されます。</p>
+      <video id="scanVideo" playsinline></video>
+      <canvas id="scanCanvas" class="hidden"></canvas>
+      <div id="scanResult" class="muted s" style="margin-top:.5rem"></div>
+    </div>
+    <footer class="row-end"><button class="btn ghost" id="btnScanStart">開始</button><button class="btn" id="btnScanClose">閉じる</button></footer>
+  </dialog>
+
+  <dialog id="dlgHistory" class="paper"><div class="body"><h3>更新履歴</h3><div id="histBody"></div></div><footer class="row-end"><button class="btn" onclick="document.getElementById('dlgHistory').close()">閉じる</button></footer></dialog>
+  <dialog id="dlgTicket" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()">印刷</button><button class="btn" onclick="document.getElementById('dlgTicket').close()">閉じる</button></footer></dialog>
+  <dialog id="dlgShip" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()">印刷</button><button class="btn" onclick="document.getElementById('dlgShip').close()">閉じる</button></footer></dialog>
 </body>
 </html>
