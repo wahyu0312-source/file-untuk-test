@@ -132,4 +132,50 @@ video#scanVideo{width:100%;max-height:48vh;border-radius:12px;background:#000}
   @page{ size:A4 portrait; margin:12mm }
   nav, .nav, .btn, .input, .row-between > .row, .loading{ display:none !important; }
   body{ background:#fff }
+  /* ====== Badges / Chips (status & process) ====== */
+.badge{display:inline-flex;align-items:center;gap:.35rem;padding:.18rem .5rem;border-radius:999px;border:1px solid var(--border);font-size:11px;line-height:1;background:#fff}
+.badge .dot{width:8px;height:8px;border-radius:999px;display:inline-block}
+
+/* 状況 (Status) – warna halus & profesional */
+.st-begin     { border-color:#c7d2fe; background:#eef2ff; color:#27396b }
+.st-inspect   { border-color:#bae6fd; background:#e0f2fe; color:#0b4666 }
+.st-hold      { border-color:#fde68a; background:#fffbeb; color:#7a4b00 }
+.st-ready     { border-color:#bbf7d0; background:#f0fdf4; color:#14532d }
+.st-shipped   { border-color:#cbd5e1; background:#f1f5f9; color:#334155 }
+.st-ng        { border-color:#fecaca; background:#fef2f2; color:#7f1d1d }
+
+/* 工程 (Process) */
+.prc-laser     { border-color:#c7d2fe; background:#eef2ff; color:#27396b }
+.prc-bend      { border-color:#a5f3fc; background:#ecfeff; color:#0b4666 }
+.prc-frame     { border-color:#bbf7d0; background:#f0fdf4; color:#14532d }
+.prc-shassy    { border-color:#fed7aa; background:#fff7ed; color:#7a4b00 }
+.prc-shweld    { border-color:#fecaca; background:#fef2f2; color:#7f1d1d }
+.prc-caulk     { border-color:#e9d5ff; background:#faf5ff; color:#5b21b6 }
+.prc-tosou     { border-color:#ffd89a; background:#fff7e6; color:#7a4b00 }
+.prc-asm-in    { border-color:#99f6e4; background:#e6fffa; color:#115e59 }
+.prc-asm-ok    { border-color:#bae6fd; background:#e0f2fe; color:#0b4666 }
+.prc-out       { border-color:#e2e8f0; background:#f8fafc; color:#334155 }
+.prc-inspect   { border-color:#bae6fd; background:#f0f9ff; color:#0b4666 }
+
+/* ====== Sub-row (注番 + 得意先) di dalam cell kiri ====== */
+.row-main{display:flex;flex-direction:column;gap:.18rem}
+.row-sub{display:flex;gap:.6rem;flex-wrap:wrap}
+.row-sub .kv{display:inline-flex;gap:.25rem;align-items:center;font-size:12px;color:var(--muted)}
+.row-sub .kv b{color:var(--ink);font-weight:600}
+
+/* ====== 操作 2-baris responsif ====== */
+.actions-2col{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(70px, 1fr));
+  gap:.35rem;
+}
+@media(min-width:1080px){ .actions-2col{ grid-template-columns: repeat(2, 86px); } }
+@media(max-width:520px) { .actions-2col{ grid-template-columns: repeat(2, 1fr); } }
+
+.btn.s.icon{display:inline-flex;align-items:center;gap:.3rem}
+
+/* ====== Kolom 状況 & 工程 agar lebih terbaca di layar besar ====== */
+.table td.col-status, .table td.col-proc{white-space:nowrap}
+.table td.col-proc .badge{font-weight:600}
+
 }
