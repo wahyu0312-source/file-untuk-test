@@ -34,6 +34,29 @@ const fmtD = (s)=> s? new Date(s).toLocaleDateString(): '';
 
 let SESSION=null, CURRENT_PO=null, scanStream=null, scanTimer=null;
 let INV_PREVIEW={info:null, lines:[]};
+/* ===== Visual mapping ===== */
+const STATUS_CLASS = {
+  '生産開始':'st-begin',
+  '検査工程':'st-inspect',
+  '検査済':'st-inspect',
+  '検査保留':'st-hold',
+  '出荷準備':'st-ready',
+  '出荷済':'st-shipped',
+  '不良品（要リペア）':'st-ng'
+};
+const PROC_CLASS = {
+  'レーザ加工':'prc-laser',
+  '曲げ加工':'prc-bend',
+  '外枠組立':'prc-frame',
+  'シャッター組立':'prc-shassy',
+  'シャッター溶接':'prc-shweld',
+  'コーキング':'prc-caulk',
+  '外枠塗装':'prc-tosou',
+  '組立（組立中）':'prc-asm-in',
+  '組立（組立済）':'prc-asm-ok',
+  '外注':'prc-out',
+  '検査工程':'prc-inspect'
+};
 
 /* ===== API helpers (dengan error bar) ===== */
 async function apiPost(action, body){
@@ -293,29 +316,67 @@ async function listOrders(){
   const q = qEl ? qEl.value.trim() : '';
   return apiGet({action:'listOrders',q});
 }
+/* ===== Orders table (baru, dengan warna & layout) ===== */
 async function renderOrders(){
   const tbody=$('#tbOrders'); if(!tbody) return;
   const rows=await listOrders();
-  tbody.innerHTML = rows.map(r=>`
-    <tr>
-      <td><b>${r.po_id}</b></td>
-      <td>${r['得意先']||''}</td>
-      <td>${r['製番号']||''}</td>
+
+  const html = rows.map(r=>{
+    const statusName = r.status || '';
+    const procName   = r.current_process || '';
+
+    const stClass = STATUS_CLASS[statusName] || 'st-begin';
+    const prClass = PROC_CLASS[procName]   || 'prc-out';
+
+    // Sub-baris 注番 + 得意先 (di kolom pertama)
+    const leftCell = `
+      <div class="row-main">
+        <a href="javascript:void(0)" onclick="openTicket('${r.po_id}')" class="link"><b>${r.po_id}</b></a>
+        <div class="row-sub">
+          <div class="kv"><span class="muted">得意先:</span> <b>${r['得意先']||'-'}</b></div>
+          ${r['製番号']?`<div class="kv"><span class="muted">製番号:</span> <b>${r['製番号']}</b></div>`:''}
+          ${(r['品番']||r['図番'])?`<div class="kv"><span class="muted">品番/図番:</span> <b>${r['品番']||''}/${r['図番']||''}</b></div>`:''}
+        </div>
+      </div>`;
+
+    // 状況 & 工程 badge elegan
+    const statusBadge = `
+      <span class="badge ${stClass}">
+        <span class="dot"></span><span>${statusName||'-'}</span>
+      </span>`;
+    const procBadge = `
+      <span class="badge ${prClass}">
+        <span class="dot"></span><span>${procName||'-'}</span>
+      </span>`;
+
+    // 操作 2-baris
+    const actions = `
+      <div class="actions-2col">
+        <button class="btn ghost s icon" onclick="openTicket('${r.po_id}')">票</button>
+        <button class="btn ghost s icon" onclick="startScanFor('${r.po_id}')">更新</button>
+        <button class="btn ghost s icon" onclick="openShipByPO('${r.po_id}')">出荷票</button>
+        <button class="btn ghost s icon" onclick="openHistory('${r.po_id}')">履歴</button>
+      </div>`;
+
+    return `<tr>
+      <td>${leftCell}</td>
       <td>${r['品名']||''}</td>
       <td>${r['品番']||''}</td>
       <td>${r['図番']||''}</td>
-      <td><span class="badge">${r.status||''}</span></td>
-      <td>${r.current_process||''}</td>
+      <td class="col-status">${statusBadge}</td>
+      <td class="col-proc">${procBadge}</td>
       <td class="s muted">${fmtDT(r.updated_at)}</td>
       <td class="s muted">${r.updated_by||''}</td>
-      <td class="s">
-        <button class="btn ghost s" onclick="openTicket('${r.po_id}')">票</button>
-        <button class="btn ghost s" onclick="startScanFor('${r.po_id}')">更新</button>
-        <button class="btn ghost s" onclick="openShipByPO('${r.po_id}')">出荷票</button>
-        <button class="btn ghost s" onclick="openHistory('${r.po_id}')">履歴</button>
-      </td>
-    </tr>`).join('');
+      <td class="s">${actions}</td>
+    </tr>`;
+  }).join('');
+
+  // Catatan: urutan head tabel Anda saat ini adalah:
+  // 注番/PO | 得意先 | 製番号 | 品名 | 品番 | 図番 | 状態 | 工程 | 更新日時 | 更新者 | 操作
+  // Versi baru di atas menempatkan sub-baris di kolom pertama (PO) & warna pada 状況/工程.
+  tbody.innerHTML = html;
 }
+
 
 /* ===== Sales (営業) ===== */
 async function renderSales(){
