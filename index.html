@@ -24,6 +24,9 @@
       <button id="btnToShip" class="btn ghost hidden">出荷予定</button>
       <button id="btnToInvoice" class="btn ghost hidden">請求書</button>
       <button id="btnToCharts" class="btn ghost hidden">チャート</button>
+      <button id="btnToStock" class="btn ghost hidden">在庫</button>
+<button id="btnToFinished" class="btn ghost hidden">完成品一覧</button>
+
       <button id="btnShowStationQR" class="btn ghost hidden">工程QR</button>
       <span id="userInfo" class="muted"></span>
       <button id="btnAddUserWeb" class="btn ghost hidden">ユーザー追加</button>
@@ -246,6 +249,49 @@
       </div>
     </section>
   </main>
+<!-- Stock (在庫) -->
+<main id="pageStock" class="container hidden">
+  <section class="card" id="stockSection">
+    <header class="row-between">
+      <h3>在庫</h3>
+      <div class="row gap">
+        <input id="stockQ" placeholder="検索..." class="input">
+        <button class="btn ghost" id="btnExportStock">CSV</button>
+      </div>
+    </header>
+    <div class="table-wrap" style="max-height:55vh">
+      <table class="table s">
+        <thead><tr>
+          <th>注番</th><th>得意先</th><th>製番号</th><th>品名</th><th>品番</th><th>図番</th>
+          <th>状態</th><th>工程</th><th>更新日時</th><th>更新者</th><th>操作</th>
+        </tr></thead>
+        <tbody id="tbStock"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<!-- Finished Goods (完成品一覧) -->
+<main id="pageFinished" class="container hidden">
+  <section class="card" id="finishedSection">
+    <header class="row-between">
+      <h3>完成品一覧</h3>
+      <div class="row gap">
+        <input id="finishedQ" placeholder="検索..." class="input">
+        <button class="btn ghost" id="btnExportFinished">CSV</button>
+      </div>
+    </header>
+    <div class="table-wrap" style="max-height:55vh">
+      <table class="table s">
+        <thead><tr>
+          <th>注番</th><th>得意先</th><th>製番号</th><th>品名</th><th>品番</th><th>図番</th>
+          <th>状態</th><th>工程</th><th>更新日時</th><th>更新者</th><th>操作</th>
+        </tr></thead>
+        <tbody id="tbFinished"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
 
   <!-- Station QR -->
   <dialog id="dlgStationQR" class="paper">
