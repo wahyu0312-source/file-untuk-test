@@ -1,5 +1,5 @@
 /* ===== Config ===== */
-const API_BASE = "https://script.google.com/macros/s/AKfycbwnU2BvQ6poO4EmMut3g5Zuu_cuojNbTmM8oRSCyNJDwm_38VgS7BhsFLKU0eoUt-BAKw/exec";
+const API_BASE = "https://script.google.com/macros/s/AKfycbwnU2BvQ6poO4EmMut3g5Zuu_cuojNbTmM8oRSCyNJDwm_38VgS7BhsFLKU0eoUt-BAKw/exec";  // << GANTI jika perlu
 const API_KEY  = ""; // optional
 
 const PROCESSES = [
@@ -59,7 +59,7 @@ const PROC_CLASS = {
   '検査工程':'prc-inspect'
 };
 
-/* ===== API helpers (dengan error bar) ===== */
+/* ===== API helpers ===== */
 async function apiPost(action, body){
   const payload={action,...body};
   if(API_KEY) payload.apiKey=API_KEY;
@@ -110,59 +110,54 @@ window.addEventListener('DOMContentLoaded', ()=>{
   const btnToShip     = $('#btnToShip');
   const btnToInvoice  = $('#btnToInvoice');
   const btnToCharts   = $('#btnToCharts');
-  const btnToInventory= $('#btnToInventory');
-  const btnToFinished = $('#btnToFinished');
-  const btnShowStationQR = $('#btnShowStationQR');
+  // NEW: Setting dropdown items
+  const ddSetting     = $('#ddSetting');
+  const miStationQR   = $('#miStationQR');
+  const miAddUser     = $('#miAddUser');
+  const miChangePass  = $('#miChangePass');
 
-  if(btnToDash)     btnToDash.onclick     = ()=> show('pageDash');
-  if(btnToSales)    btnToSales.onclick    = ()=> show('pageSales');
-  if(btnToPlan)     btnToPlan.onclick     = ()=> show('pagePlan');
-  if(btnToShip)     btnToShip.onclick     = ()=> show('pageShip');
-  if(btnToInvoice)  btnToInvoice.onclick  = ()=> show('pageInvoice');
-  if(btnToCharts)   btnToCharts.onclick   = ()=> { show('pageCharts'); ensureChartsLoaded(); };
-  if(btnToInventory)btnToInventory.onclick= ()=> { show('pageInventory'); renderInventory(); };
-  if(btnToFinished) btnToFinished.onclick = ()=> { show('pageFinished');  renderFinished(); };
-  if(btnShowStationQR) btnShowStationQR.onclick = openStationQR;
+  if(btnToDash)    btnToDash.onclick    = ()=> show('pageDash');
+  if(btnToSales)   btnToSales.onclick   = ()=> show('pageSales');
+  if(btnToPlan)    btnToPlan.onclick    = ()=> show('pagePlan');
+  if(btnToShip)    btnToShip.onclick    = ()=> show('pageShip');
+  if(btnToInvoice) btnToInvoice.onclick = ()=> show('pageInvoice');
+  if(btnToCharts)  btnToCharts.onclick  = ()=> { show('pageCharts'); ensureChartsLoaded(); };
+
+  // Connect Setting menu
+  if(miStationQR)  miStationQR.onclick  = openStationQR;
+  if(miAddUser)    miAddUser.onclick    = openAddUserModal;
+  if(miChangePass) miChangePass.onclick = changePasswordUI;
 
   // Auth
   const btnLogin      = $('#btnLogin');
   const btnNewUser    = $('#btnNewUser');
   const btnLogout     = $('#btnLogout');
-  const btnChangePass = $('#btnChangePass');
 
   if(btnLogin)      btnLogin.onclick      = onLogin;
   if(btnNewUser)    btnNewUser.onclick    = addUserFromLoginUI;
   if(btnLogout)     btnLogout.onclick     = ()=>{ SESSION=null; localStorage.removeItem('erp_session'); location.reload(); };
-  if(btnChangePass) btnChangePass.onclick = changePasswordUI;
 
   // Dashboard
   const btnRefresh = $('#btnRefresh');
   const searchQ    = $('#searchQ');
   const btnExportOrders = $('#btnExportOrders');
-  const btnExportShip   = $('#btnExportShip');
-  const btnImport       = $('#btnImport');
-  const importFile      = $('#importFile');
-
   if(btnRefresh)       btnRefresh.onclick       = refreshAll;
   if(searchQ)          searchQ.addEventListener('input', renderOrders);
   if(btnExportOrders)  btnExportOrders.onclick  = exportOrdersCSV;
-  if(btnExportShip)    btnExportShip.onclick    = exportShipCSV;
-  if(btnImport && importFile){
-    btnImport.onclick = ()=> importFile.click();
-    importFile.onchange = onImportCSV;
-  }
 
   // Sales
   const btnSalesSave   = $('#btnSalesSave');
   const btnSalesDelete = $('#btnSalesDelete');
   const btnSalesExport = $('#btnSalesExport');
   const btnPromote     = $('#btnPromote');
+  const btnSalesImport = $('#btnSalesImport'); // NEW
   const salesQ         = $('#salesQ');
 
   if(btnSalesSave)   btnSalesSave.onclick   = saveSalesUI;
   if(btnSalesDelete) btnSalesDelete.onclick = deleteSalesUI;
   if(btnSalesExport) btnSalesExport.onclick = exportSalesCSV;
   if(btnPromote)     btnPromote.onclick     = promoteSalesUI;
+  if(btnSalesImport) btnSalesImport.onclick = ()=> openImportDialog('sales'); // NEW
   if(salesQ)         salesQ.addEventListener('input', renderSales);
 
   // Plan
@@ -170,11 +165,13 @@ window.addEventListener('DOMContentLoaded', ()=>{
   const btnPlanExport  = $('#btnPlanExport');
   const btnPlanEdit    = $('#btnPlanEdit');
   const btnPlanDelete  = $('#btnPlanDelete');
+  const btnPlanImport  = $('#btnPlanImport'); // NEW
 
   if(btnCreateOrder) btnCreateOrder.onclick = createOrderUI;
   if(btnPlanExport)  btnPlanExport.onclick  = exportOrdersCSV;
   if(btnPlanEdit)    btnPlanEdit.onclick    = loadOrderForEdit;
   if(btnPlanDelete)  btnPlanDelete.onclick  = deleteOrderUI;
+  if(btnPlanImport)  btnPlanImport.onclick  = ()=> openImportDialog('orders'); // NEW
 
   // Ship
   const btnSchedule    = $('#btnSchedule');
@@ -183,6 +180,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   const btnShipDelete  = $('#btnShipDelete');
   const btnShipByPO    = $('#btnShipByPO');
   const btnShipByID    = $('#btnShipByID');
+  const btnShipImport  = $('#btnShipImport'); // NEW
 
   if(btnSchedule)   btnSchedule.onclick   = scheduleUI;
   if(btnShipExport) btnShipExport.onclick = exportShipCSV;
@@ -190,6 +188,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   if(btnShipDelete) btnShipDelete.onclick = deleteShipUI;
   if(btnShipByPO)   btnShipByPO.onclick   = ()=>{ const po=$('#s_po').value.trim(); if(!po) return alert('注番入力'); openShipByPO(po); };
   if(btnShipByID)   btnShipByID.onclick   = ()=>{ const id=prompt('Ship ID:'); if(!id) return; openShipByID(id.trim()); };
+  if(btnShipImport) btnShipImport.onclick = ()=> openImportDialog('ship'); // NEW
 
   // Scan
   const btnScanStart = $('#btnScanStart');
@@ -213,15 +212,21 @@ window.addEventListener('DOMContentLoaded', ()=>{
   if(btnChartsRefresh) btnChartsRefresh.onclick = renderCharts;
   fillChartYearSelector();
 
-  // Restore session & prioritize rendering (cache-first)
+  // Import dialog bindings
+  bindImportDialog(); // NEW
+
+  // Restore session
   const saved=localStorage.getItem('erp_session');
   if(saved){ SESSION=JSON.parse(saved); enter(); } else { show('authView'); }
 });
 
 /* ===== UI ===== */
 function show(id){
-  const ids=['authView','pageDash','pageSales','pagePlan','pageShip','pageInvoice','pageCharts','pageInventory','pageFinished'];
-  ids.forEach(x=>{ const el=document.getElementById(x); if(el) el.classList.add('hidden'); });
+  const ids=['authView','pageDash','pageSales','pagePlan','pageShip','pageInvoice','pageCharts'];
+  ids.forEach(x=>{
+    const el=document.getElementById(x);
+    if(el) el.classList.add('hidden');
+  });
   const target=document.getElementById(id);
   if(target) target.classList.remove('hidden');
 }
@@ -229,22 +234,58 @@ function enter(){
   const ui=$('#userInfo');
   if(ui && SESSION) ui.textContent = `${SESSION.full_name}・${SESSION.department}`;
 
-  const ids=['btnLogout','btnChangePass','btnToDash','btnToSales','btnToPlan','btnToShip','btnToInvoice','btnToCharts','btnToInventory','btnToFinished','btnShowStationQR'];
+  // Tampilkan tombol/nav umum
+  const ids=['btnLogout','btnToDash','btnToSales','btnToPlan','btnToShip','btnToInvoice','btnToCharts'];
   ids.forEach(id=>{ const el=$('#'+id); if(el) el.classList.remove('hidden'); });
 
-  const addUserBtn=$('#btnAddUserWeb');
+  // NEW: tampilkan dropdown Setting jika login
+  const dd=$('#ddSetting'); if(dd) dd.classList.remove('hidden');
+
+  // akses Add User di modal Setting hanya untuk admin/生産技術
+  const addUserBtn=$('#miAddUser');
   if(addUserBtn){
-    if (SESSION.role==='admin' || SESSION.department==='生産技術') addUserBtn.classList.remove('hidden');
-    else addUserBtn.classList.add('hidden');
-    addUserBtn.onclick = openAddUserModal;
+    if (SESSION.role==='admin' || SESSION.department==='生産技術') addUserBtn.disabled=false;
+    else addUserBtn.disabled=true;
   }
 
-  // Cache-first rendering
   show('pageDash');
-  const cache = JSON.parse(localStorage.getItem('orders_cache')||'[]');
-  if(cache.length) renderOrdersFrom(cache);
-  // Jadwalkan fetch terbaru
+  loadMasters();
   refreshAll();
+}
+
+/* ===== Auth ===== */
+async function onLogin(){
+  const u=$('#inUser')?$('#inUser').value.trim():'';
+  const p=$('#inPass')?$('#inPass').value.trim():'';
+  try{
+    const r=await apiPost('login',{username:u,password:p});
+    SESSION=r;
+    localStorage.setItem('erp_session',JSON.stringify(r));
+    enter();
+  }catch(e){ alert(e.message||e); }
+}
+async function addUserFromLoginUI(){
+  if(!SESSION) return alert('ログインしてください');
+  if(!(SESSION.role==='admin'||SESSION.department==='生産技術')) return alert('権限不足（生産技術）');
+  const payload={
+    username:$('#nuUser')?$('#nuUser').value.trim():'',
+    password:$('#nuPass')?$('#nuPass').value.trim():'',
+    full_name:$('#nuName')?$('#nuName').value.trim():'',
+    department:$('#nuDept')?$('#nuDept').value:'',
+    role:$('#nuRole')?$('#nuRole').value:'member'
+  };
+  if(!payload.username||!payload.password||!payload.full_name) return alert('必須項目');
+  try{ await apiPost('createUser',{user:SESSION,payload}); alert('作成しました'); }catch(e){ alert(e.message||e); }
+}
+async function changePasswordUI(){
+  if(!SESSION) return alert('ログインしてください');
+  const oldPass=prompt('旧パスワード:'); if(oldPass===null) return;
+  const newPass=prompt('新パスワード:'); if(newPass===null) return;
+  try{
+    await apiPost('changePassword',{user:SESSION,oldPass,newPass});
+    alert('変更しました。再ログインしてください。');
+    SESSION=null; localStorage.removeItem('erp_session'); location.reload();
+  }catch(e){ alert(e.message||e); }
 }
 
 /* ===== Masters ===== */
@@ -259,34 +300,31 @@ async function loadMasters(){
   }catch(e){ console.warn(e); }
 }
 
-/* ===== Dashboard (tanpa charts) ===== */
+/* ===== Dashboard ===== */
 async function refreshAll(keep=false){
-  // Prioritaskan KPI ringan, ambil paralel
   try{
-    const [s, today, loc] = await Promise.all([
-      apiGet({action:'stock'}),
-      apiGet({action:'todayShip'}),
-      apiGet({action:'locSnapshot'})
-    ]);
+    const s=await apiGet({action:'stock'});
     const statFinished=$('#statFinished'); const statReady=$('#statReady'); const statShipped=$('#statShipped');
     if(statFinished) statFinished.textContent=s.finishedStock;
     if(statReady)    statReady.textContent=s.ready;
     if(statShipped)  statShipped.textContent=s.shipped;
 
+    const today=await apiGet({action:'todayShip'});
     const listToday=$('#listToday');
     if(listToday){
-      listToday.innerHTML = (today && today.length)
-        ? today.map(r=>`<div><span>${r.po_id}</span><span>・${fmtD(r.scheduled_date)}・${r.qty}</span></div>`).join('')
+      listToday.innerHTML = today.length
+        ? today.map(r=>`<div><span>${r.po_id}</span><span>${fmtD(r.scheduled_date)}・${r.qty}</span></div>`).join('')
         : '<div class="muted">本日予定なし</div>';
     }
 
+    const loc=await apiGet({action:'locSnapshot'});
     const grid=$('#gridProc');
     if(grid) grid.innerHTML = PROCESSES.map(p=> `<div class="grid-chip"><div class="muted s">${p}</div><div class="h">${loc[p]||0}</div></div>`).join('');
-  }catch(e){ console.error(e); }
 
-  if(!keep){ const q=$('#searchQ'); if(q) q.value=''; }
-  await renderOrders(); // berat → panggil terakhir
-  await renderSales();
+    if(!keep){ const q=$('#searchQ'); if(q) q.value=''; }
+    await renderOrders();
+    await renderSales();
+  }catch(e){ console.error(e); }
 }
 
 /* ===== Orders table ===== */
@@ -295,13 +333,17 @@ async function listOrders(){
   const q = qEl ? qEl.value.trim() : '';
   return apiGet({action:'listOrders',q});
 }
-function renderOrdersFrom(rows){
+async function renderOrders(){
   const tbody=$('#tbOrders'); if(!tbody) return;
+  const rows=await listOrders();
+
   const html = rows.map(r=>{
     const statusName = r.status || '';
     const procName   = r.current_process || '';
+
     const stClass = STATUS_CLASS[statusName] || 'st-begin';
     const prClass = PROC_CLASS[procName]   || 'prc-out';
+
     const leftCell = `
       <div class="row-main">
         <a href="javascript:void(0)" onclick="openTicket('${r.po_id}')" class="link"><b>${r.po_id}</b></a>
@@ -311,15 +353,18 @@ function renderOrdersFrom(rows){
           ${(r['品番']||r['図番'])?`<div class="kv"><span class="muted">品番/図番:</span> <b>${r['品番']||''}/${r['図番']||''}</b></div>`:''}
         </div>
       </div>`;
+
     const statusBadge = `<span class="badge ${stClass}"><span class="dot"></span><span>${statusName||'-'}</span></span>`;
     const procBadge   = `<span class="badge ${prClass}"><span class="dot"></span><span>${procName||'-'}</span></span>`;
+
     const actions = `
       <div class="actions-2col">
-        <button class="btn ghost s icon" onclick="openTicket('${r.po_id}')"><i class="fa-regular fa-file-lines"></i> 票</button>
-        <button class="btn ghost s icon" onclick="startScanFor('${r.po_id}')"><i class="fa-solid fa-qrcode"></i> 更新</button>
-        <button class="btn ghost s icon" onclick="openShipByPO('${r.po_id}')"><i class="fa-solid fa-truck-fast"></i> 出荷票</button>
-        <button class="btn ghost s icon" onclick="openHistory('${r.po_id}')"><i class="fa-solid fa-clock-rotate-left"></i> 履歴</button>
+        <button class="btn ghost s icon" onclick="openTicket('${r.po_id}')">票</button>
+        <button class="btn ghost s icon" onclick="startScanFor('${r.po_id}')">更新</button>
+        <button class="btn ghost s icon" onclick="openShipByPO('${r.po_id}')">出荷票</button>
+        <button class="btn ghost s icon" onclick="openHistory('${r.po_id}')">履歴</button>
       </div>`;
+
     return `<tr>
       <td>${leftCell}</td>
       <td>${r['品名']||''}</td>
@@ -332,109 +377,40 @@ function renderOrdersFrom(rows){
       <td class="s">${actions}</td>
     </tr>`;
   }).join('');
-  tbody.innerHTML = html || `<tr><td colspan="9" class="muted s">データなし</td></tr>`;
-}
-async function renderOrders(){
-  const tbody=$('#tbOrders'); if(!tbody) return;
-  try{
-    const rows=await listOrders();
-    localStorage.setItem('orders_cache', JSON.stringify(rows||[]));
-    renderOrdersFrom(rows||[]);
-  }catch(e){
-    console.error(e);
-    tbody.innerHTML=`<tr><td colspan="9" class="muted s">読み込み失敗</td></tr>`;
-  }
-}
 
-/* ===== Inventory (在庫) & Finished (完成品一覧) ===== */
-async function listInventory(q){ return apiGet({action:'listInventory', q:q||''}); }
-async function listFinished(q){  return apiGet({action:'listFinished',  q:q||''}); }
-
-function renderCommonTableRows(rows){
-  return (rows||[]).map(r=>{
-    const stClass = STATUS_CLASS[r.status||''] || 'st-begin';
-    const prClass = PROC_CLASS[r.current_process||''] || 'prc-out';
-    return `<tr>
-      <td>
-        <div class="row-main">
-          <a href="javascript:void(0)" onclick="openTicket('${r.po_id}')"><b>${r.po_id}</b></a>
-          <div class="row-sub">
-            <div class="kv"><span class="muted">得意先:</span> <b>${r['得意先']||'-'}</b></div>
-            ${r['製番号']?`<div class="kv"><span class="muted">製番号:</span> <b>${r['製番号']}</b></div>`:''}
-          </div>
-        </div>
-      </td>
-      <td>${r['品名']||''}</td>
-      <td>${r['品番']||''}</td>
-      <td>${r['図番']||''}</td>
-      <td><span class="badge ${stClass}"><span class="dot"></span>${r.status||''}</span></td>
-      <td><span class="badge ${prClass}"><span class="dot"></span>${r.current_process||''}</span></td>
-      <td class="s muted">${fmtDT(r.updated_at)}</td>
-      <td class="s muted">${r.updated_by||''}</td>
-      <td class="s">
-        <div class="actions-2col">
-          <button class="btn ghost s" onclick="openTicket('${r.po_id}')"><i class="fa-regular fa-file-lines"></i> 票</button>
-          <button class="btn ghost s" onclick="openHistory('${r.po_id}')"><i class="fa-solid fa-clock-rotate-left"></i> 履歴</button>
-        </div>
-      </td>
-    </tr>`;
-  }).join('');
+  tbody.innerHTML = html;
 }
-
-async function renderInventory(){
-  const tbody=$('#tbInv'); if(!tbody) return;
-  const qEl=$('#invQ'); const q=(qEl&&qEl.value)||'';
-  try{
-    const rows=await listInventory(q);
-    tbody.innerHTML = renderCommonTableRows(rows) || `<tr><td colspan="9" class="muted s">データなし</td></tr>`;
-  }catch(e){
-    tbody.innerHTML=`<tr><td colspan="9" class="muted s">読み込み失敗</td></tr>`;
-  }
-}
-async function renderFinished(){
-  const tbody=$('#tbFin'); if(!tbody) return;
-  const qEl=$('#finQ'); const q=(qEl&&qEl.value)||'';
-  try{
-    const rows=await listFinished(q);
-    tbody.innerHTML = renderCommonTableRows(rows) || `<tr><td colspan="9" class="muted s">データなし</td></tr>`;
-  }catch(e){
-    tbody.innerHTML=`<tr><td colspan="9" class="muted s">読み込み失敗</td></tr>`;
-  }
-}
-const invQ=$('#invQ'); if(invQ) invQ.addEventListener('input', ()=>renderInventory());
-const finQ=$('#finQ'); if(finQ) finQ.addEventListener('input', ()=>renderFinished());
-const btnInvListCSV=$('#btnInvListCSV'); if(btnInvListCSV) btnInvListCSV.onclick=async()=>{ const r=await listInventory(''); downloadCSV('inventory.csv', r); };
-const btnFinListCSV=$('#btnFinListCSV'); if(btnFinListCSV) btnFinListCSV.onclick=async()=>{ const r=await listFinished(''); downloadCSV('finished.csv', r); };
 
 /* ===== Sales (営業) ===== */
 async function renderSales(){
   const tbody=$('#tbSales'); if(!tbody) return;
   const qEl=$('#salesQ'); const q=(qEl&&qEl.value)? qEl.value.trim():'';
-  try{
-    const rows=await apiGet({action:'listSales',q});
-    tbody.innerHTML = rows.map(r=>`
-      <tr>
-        <td>${r.so_id||''}</td>
-        <td class="s muted">${fmtD(r['受注日'])}</td>
-        <td>${r['得意先']||''}</td>
-        <td>${r['品名']||''}</td>
-        <td>${(r['品番']||'')}/${(r['図番']||'')}</td>
-        <td>${r['数量']||0}</td>
-        <td class="s muted">${fmtD(r['希望納期'])}</td>
-        <td><span class="badge">${r.status||''}</span></td>
-        <td>${r['linked_po_id']||''}</td>
-        <td class="s muted">${fmtDT(r['updated_at'])}</td>
-      </tr>`).join('');
-  }catch(e){
-    tbody.innerHTML=`<tr><td colspan="10" class="muted s">読み込み失敗</td></tr>`;
-  }
+  const rows=await apiGet({action:'listSales',q});
+  tbody.innerHTML = rows.map(r=>`
+    <tr>
+      <td>${r.so_id||''}</td>
+      <td class="s muted">${fmtD(r['受注日'])}</td>
+      <td>${r['得意先']||''}</td>
+      <td>${r['品名']||''}</td>
+      <td>${(r['品番']||'')}/${(r['図番']||'')}</td>
+      <td>${r['数量']||0}</td>
+      <td class="s muted">${fmtD(r['希望納期'])}</td>
+      <td><span class="badge">${r.status||''}</span></td>
+      <td>${r['linked_po_id']||''}</td>
+      <td class="s muted">${fmtDT(r['updated_at'])}</td>
+    </tr>`).join('');
 }
 async function saveSalesUI(){
   const p={
-    '受注日':$('#so_date')?$('#so_date').value:'', '得意先':$('#so_cust')?$('#so_cust').value:'',
-    '品名':$('#so_item')?$('#so_item').value:'', '品番':$('#so_part')?$('#so_part').value:'',
-    '図番':$('#so_drw')?$('#so_drw').value:'', '製番号':$('#so_sei')?$('#so_sei').value:'',
-    '数量':$('#so_qty')?$('#so_qty').value:'', '希望納期':$('#so_req')?$('#so_req').value:'', '備考':$('#so_note')?$('#so_note').value:''
+    '受注日':$('#so_date')?$('#so_date').value:'',
+    '得意先':$('#so_cust')?$('#so_cust').value:'',
+    '品名':$('#so_item')?$('#so_item').value:'',
+    '品番':$('#so_part')?$('#so_part').value:'',
+    '図番':$('#so_drw')?$('#so_drw').value:'',
+    '製番号':$('#so_sei')?$('#so_sei').value:'',
+    '数量':$('#so_qty')?$('#so_qty').value:'',
+    '希望納期':$('#so_req')?$('#so_req').value:'',
+    '備考':$('#so_note')?$('#so_note').value:''
   };
   const soEl=$('#so_id'); const so=soEl?soEl.value.trim():'';
   try{
@@ -452,7 +428,9 @@ async function deleteSalesUI(){
 async function promoteSalesUI(){
   const soEl=$('#so_id'); const so=soEl?soEl.value.trim():'';
   if(!so) return alert('SO入力');
-  try{ const r=await apiPost('promoteSalesToPlan',{so_id:so,user:SESSION}); alert('生産計画を作成: '+r.po_id); refreshAll(); }catch(e){ alert(e.message||e); }
+  try{
+    const r=await apiPost('promoteSalesToPlan',{so_id:so,user:SESSION}); alert('生産計画を作成: '+r.po_id); refreshAll();
+  }catch(e){ alert(e.message||e); }
 }
 async function exportSalesCSV(){ const rows=await apiGet({action:'listSales'}); downloadCSV('sales_orders.csv', rows); }
 
@@ -583,48 +561,6 @@ function downloadFile(name,content){
   a.download=name; a.click();
 }
 
-/* ===== Import CSV ===== */
-async function onImportCSV(e){
-  const f=e.target.files && e.target.files[0];
-  if(!f) return;
-  if(!confirm('Import CSV ke ProductionOrders (merge berdasarkan po_id)?')) return;
-  const text=await f.text();
-  const rows=parseCSV(text);               // array of objects
-  if(!rows.length){ alert('CSV kosong'); return; }
-  try{
-    const r=await apiPost('importRows',{table:'ProductionOrders',key:'po_id',rows,user:SESSION});
-    alert('Import selesai: '+(r.upserted||0)+' baris');
-    refreshAll(true);
-  }catch(err){ alert(err.message||err); }
-  e.target.value="";
-}
-function parseCSV(text){
-  const lines=text.split(/\r?\n/).filter(x=>x.trim().length);
-  if(!lines.length) return [];
-  const sep = (lines[0].includes('\t') && !lines[0].includes(',')) ? '\t' : ',';
-  const headers = lines[0].split(sep).map(h=>h.trim());
-  const arr=[];
-  for(let i=1;i<lines.length;i++){
-    const parts = splitCSVLine(lines[i], sep);
-    if(parts.length===1 && !parts[0]) continue;
-    const o={}; headers.forEach((h,idx)=> o[h]=parts[idx]!==undefined? parts[idx] : '');
-    arr.push(o);
-  }
-  return arr;
-}
-function splitCSVLine(line, sep){
-  // simple CSV splitter (quote-aware)
-  const out=[]; let cur=''; let q=false;
-  for(let i=0;i<line.length;i++){
-    const c=line[i];
-    if(c==='"'){ if(q && line[i+1]==='"'){ cur+='"'; i++; } else q=!q; }
-    else if(c===sep && !q){ out.push(cur); cur=''; }
-    else cur+=c;
-  }
-  out.push(cur);
-  return out.map(s=>s.trim());
-}
-
 /* ===== Station QR ===== */
 function openStationQR(){
   const wrap = $('#qrWrap'); if(!wrap){ alert('QRコンテナが見つかりません'); return; }
@@ -645,46 +581,55 @@ function openStationQR(){
       if(cvs&&cvs.toDataURL) url=cvs.toDataURL('image/png');
       else if(img&&img.src) url=img.src;
       if(url){ link.href=url; link.download=`ST-${st}.png`; } else link.remove();
-    },60);
+    },50);
   });
   const dlg=document.getElementById('dlgStationQR');
   if(dlg) dlg.showModal();
 }
 
-/* ===== Auth ===== */
-async function onLogin(){
-  const u=$('#inUser')?$('#inUser').value.trim():'';
-  const p=$('#inPass')?$('#inPass').value.trim():'';
-  try{
-    const r=await apiPost('login',{username:u,password:p});
-    SESSION=r;
-    localStorage.setItem('erp_session',JSON.stringify(r));
-    enter();
-    loadMasters();
-  }catch(e){ alert(e.message||e); }
+/* ===== Scan flow ===== */
+function startScanFor(po_id){
+  CURRENT_PO=po_id;
+  const po=$('#scanPO'); const res=$('#scanResult');
+  if(po) po.textContent=po_id;
+  if(res) res.textContent='開始を押してQRを読み取ってください';
+  const dlg=document.getElementById('dlgScan'); if(dlg) dlg.showModal();
 }
-async function addUserFromLoginUI(){
-  if(!SESSION) return alert('ログインしてください');
-  if(!(SESSION.role==='admin'||SESSION.department==='生産技術')) return alert('権限不足（生産技術）');
-  const payload={
-    username:$('#nuUser')?$('#nuUser').value.trim():'',
-    password:$('#nuPass')?$('#nuPass').value.trim():'',
-    full_name:$('#nuName')?$('#nuName').value.trim():'',
-    department:$('#nuDept')?$('#nuDept').value:'',
-    role:$('#nuRole')?$('#nuRole').value:'member'
-  };
-  if(!payload.username||!payload.password||!payload.full_name) return alert('必須項目');
-  try{ await apiPost('createUser',{user:SESSION,payload}); alert('作成しました'); }catch(e){ alert(e.message||e); }
-}
-async function changePasswordUI(){
-  if(!SESSION) return alert('ログインしてください');
-  const oldPass=prompt('旧パスワード:'); if(oldPass===null) return;
-  const newPass=prompt('新パスワード:'); if(newPass===null) return;
+async function scanStart(){
   try{
-    await apiPost('changePassword',{user:SESSION,oldPass,newPass});
-    alert('変更しました。再ログインしてください。');
-    SESSION=null; localStorage.removeItem('erp_session'); location.reload();
-  }catch(e){ alert(e.message||e); }
+    if(scanStream) return;
+    const v=$('#scanVideo'), c=$('#scanCanvas'); if(!v||!c) return;
+    const ctx=c.getContext('2d');
+    const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    scanStream=st; v.srcObject=st; await v.play();
+    scanTimer=setInterval(async ()=>{
+      c.width=v.videoWidth; c.height=v.videoHeight; ctx.drawImage(v,0,0,c.width,c.height);
+      // eslint-disable-next-line no-undef
+      const code=jsQR(ctx.getImageData(0,0,c.width,c.height).data,c.width,c.height);
+      if(code && code.data){
+        const text=code.data.trim();
+        const res=$('#scanResult'); if(res) res.textContent='読み取り: '+text;
+        if(/^ST:/.test(text) && CURRENT_PO){
+          const station=text.slice(3); const rule=STATION_RULES[station];
+          if(!rule){ if(res) res.textContent='未知のステーション: '+station; return; }
+          try{
+            const cur=await apiGet({action:'ticket',po_id:CURRENT_PO});
+            const updates=rule(cur);
+            await apiPost('updateOrder',{po_id:CURRENT_PO,updates,user:SESSION});
+            if(res) res.textContent=`更新完了: ${CURRENT_PO} → ${updates.status||'(状態変更なし)'} / ${updates.current_process||cur.current_process}`;
+            refreshAll(true);
+          }catch(e){
+            if(res) res.textContent='更新失敗: '+(e.message||e);
+          }
+        }
+      }
+    }, 500);
+  }catch(e){ alert('カメラ起動失敗: '+(e.message||e)); }
+}
+function scanClose(){
+  clearInterval(scanTimer); scanTimer=null;
+  if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream=null; }
+  const dlg=document.getElementById('dlgScan'); if(dlg) dlg.close();
 }
 
 /* ===== History ===== */
@@ -700,7 +645,7 @@ async function openHistory(po_id){
   }catch(e){ alert(e.message||e); }
 }
 
-/* ===== Add user (navbar) ===== */
+/* ===== Add user (from Setting) ===== */
 function openAddUserModal(){
   if(!(SESSION && (SESSION.role==='admin'||SESSION.department==='生産技術'))) return alert('権限不足');
   const html=`<h3>ユーザー追加</h3>
@@ -728,7 +673,7 @@ function openAddUserModal(){
   };
 }
 
-/* ===== Invoice (tetap) ===== */
+/* ===== Invoice UI ===== */
 function recalcInvoiceTotals(){
   let sub=0;
   const rows=[...document.querySelectorAll('#invLines tr')];
@@ -796,42 +741,15 @@ async function createInvoiceUI(){
     openInvoiceDoc(r.inv_id);
   }catch(e){ alert(e.message||e); }
 }
-async function openInvoiceDoc(inv_id){
-  if(!inv_id){ alert('先に請求書を発行してください'); return; }
-  try{
-    const d=await apiGet({action:'invoiceDoc',inv_id});
-    const inv=d.inv, lines=d.lines;
-    const body=`<h3>請求書</h3>
-      <table>
-        <tr><th>請求番号</th><td>${inv.inv_id}</td><th>請求日</th><td>${fmtD(inv['請求日'])}</td></tr>
-        <tr><th>得意先</th><td>${inv['得意先']}</td><th>対象期間</th><td>${fmtD(inv['期間自'])} 〜 ${fmtD(inv['期間至'])}</td></tr>
-        <tr><th>通貨</th><td>${inv['通貨']||'JPY'}</td><th>備考</th><td>${inv['メモ']||''}</td></tr>
-      </table>
-      <br>
-      <table>
-        <thead><tr><th>#</th><th>品名</th><th>品番</th><th>図番</th><th>数量</th><th>単価</th><th>金額</th><th>PO</th><th>出荷ID</th></tr></thead>
-        <tbody>
-          ${lines.map(l=>`<tr><td>${l['行No']}</td><td>${l['品名']}</td><td>${l['品番']}</td><td>${l['図番']}</td><td>${l['数量']}</td><td>${l['単価']}</td><td>${l['金額']}</td><td>${l['PO']||''}</td><td>${l['出荷ID']||''}</td></tr>`).join('')}
-        </tbody>
-        <tfoot>
-          <tr><td colspan="5"></td><td>小計</td><td>${inv['小計']}</td><td colspan="2"></td></tr>
-          <tr><td colspan="5"></td><td>税額</td><td>${inv['税額']}</td><td colspan="2"></td></tr>
-          <tr><td colspan="5"></td><td><b>合計</b></td><td><b>${inv['合計']}</b></td><td colspan="2"></td></tr>
-        </tfoot>
-      </table>`;
-    showDoc('dlgTicket', body);
-  }catch(e){ alert(e.message||e); }
-}
 function exportInvoiceCSV(){
   const rows=[...document.querySelectorAll('#invLines tr')].map(tr=>({
     行No:tr.dataset.no, 品名:tr.dataset.hinmei, 品番:tr.dataset.hinban, 図番:tr.dataset.zuban,
-    数量:(tr.querySelector('.q')?tr.querySelector('.q').value:''), 単価:(tr.querySelector('.p')?tr.querySelector('.p').value:''),
-    POs:tr.dataset.pos, 出荷IDs:tr.dataset.shipids
+    数量:(tr.querySelector('.q')?tr.querySelector('.q').value:''), 単価:(tr.querySelector('.p')?tr.querySelector('.p').value:''), POs:tr.dataset.pos, 出荷IDs:tr.dataset.shipids
   }));
   downloadCSV('invoice_preview.csv', rows);
 }
 
-/* ====== CHARTS PAGE (統計) ====== */
+/* ====== CHARTS PAGE ====== */
 let CHARTS = {monthly:null, customer:null, stock:null, wipProc:null, sales:null, plan:null};
 function fillChartYearSelector(){
   const sel=$('#chartYear'); if(!sel) return;
@@ -858,11 +776,8 @@ async function renderCharts(){
     };
   }
   const months=['1','2','3','4','5','6','7','8','9','10','11','12'];
-
   Object.keys(CHARTS).forEach(k=>{ if(CHARTS[k] && CHARTS[k].destroy) CHARTS[k].destroy(); });
-
   const opts = { responsive:true, maintainAspectRatio:false, animation:false, plugins:{legend:{display:true}}, scales:{x:{ticks:{autoSkip:false}}} };
-
   // eslint-disable-next-line no-undef
   CHARTS.monthly = new Chart($('#chMonthly'),{ type:'bar', data:{labels:months, datasets:[{label:`月別出荷数量（${d.year}）`, data:d.perMonth}]}, options:opts });
   // eslint-disable-next-line no-undef
@@ -875,4 +790,185 @@ async function renderCharts(){
   CHARTS.sales = new Chart($('#chSales'),{ type:'line', data:{labels:months, datasets:[{label:`営業 受注数（${d.year}）`, data:d.salesPerMonth||[], tension:.3}]}, options:opts });
   // eslint-disable-next-line no-undef
   CHARTS.plan = new Chart($('#chPlan'),{ type:'line', data:{labels:months, datasets:[{label:`生産計画 作成数（${d.year}）`, data:d.planPerMonth||[], tension:.3}]}, options:opts });
+}
+
+/* ======== IMPORT (CSV/Excel) – NEW ======== */
+let IMP_CTX = { target:null, rows:[], headers:[] };
+
+function bindImportDialog(){
+  const dlg = $('#dlgImport');
+  const file = $('#impFile');
+  const btnUp = $('#impUpload');
+  const btnCancel = $('#impCancel');
+  const btnExample = $('#impExample');
+
+  if(btnCancel) btnCancel.onclick = ()=> dlg.close();
+  if(btnUp)     btnUp.onclick     = uploadImportData;
+  if(btnExample)btnExample.onclick= downloadExampleCSV;
+
+  if(file) file.onchange = async (ev)=>{
+    const f = ev.target.files && ev.target.files[0];
+    if(!f) return;
+    // Validasi dasar
+    if(f.size > 2*1024*1024) { // 2MB
+      alert('ファイルが大きすぎます（2MB上限）');
+      file.value = ''; return;
+    }
+    const name = (f.name||'').toLowerCase();
+    if(!(name.endsWith('.csv') || name.endsWith('.xlsx'))){
+      alert('CSV または .xlsx を選択してください');
+      file.value=''; return;
+    }
+    try{
+      let rows=[], headers=[];
+      if(name.endsWith('.csv')){
+        const text = await f.text();
+        ({rows, headers} = parseCsvLocal(text));
+      }else{
+        // Excel
+        const data = await f.arrayBuffer();
+        // eslint-disable-next-line no-undef
+        const wb = XLSX.read(data, {type:'array'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(ws, {defval:'', raw:true, blankrows:false});
+        rows = json;
+        headers = rows.length ? Object.keys(rows[0]) : [];
+      }
+      if(rows.length > 5000){ alert('行数が多すぎます（最大 5,000 行）'); file.value=''; return; }
+
+      IMP_CTX.rows = rows;
+      IMP_CTX.headers = headers;
+      renderImportPreview();
+    }catch(e){
+      alert('読み込み失敗: '+(e.message||e));
+      file.value='';
+    }
+  };
+}
+
+function openImportDialog(target){
+  if(!SESSION) return alert('ログインしてください');
+  if(!(['orders','sales','ship'].includes(target))) return alert('対象が不正です');
+  IMP_CTX = { target, rows:[], headers:[] };
+  const dlg=$('#dlgImport');
+  const lab=$('#impTargetLabel');
+  const head=$('#impHead'), body=$('#impBody'), file=$('#impFile'), note=$('#impNote');
+  if(lab) lab.textContent = target==='orders' ? '生産計画（ProductionOrders）'
+                   : target==='sales' ? '受注（SalesOrders）'
+                   : '出荷予定（Shipments）';
+  if(head) head.innerHTML=''; if(body) body.innerHTML=''; if(note) note.textContent='';
+  if(file) file.value='';
+  dlg.showModal();
+}
+
+function renderImportPreview(){
+  const head=$('#impHead'), body=$('#impBody'), note=$('#impNote');
+  if(!head||!body) return;
+  const H = IMP_CTX.headers;
+  head.innerHTML = H.map(h=>`<th>${escapeHtml(h)}</th>`).join('');
+  body.innerHTML = (IMP_CTX.rows||[]).slice(0,100).map(r=>`<tr>${
+    H.map(h=> `<td class="s">${escapeHtml(String(r[h]??''))}</td>`).join('')
+  }</tr>`).join('');
+  if(note){
+    const more = IMP_CTX.rows.length>100 ? `（先頭100行を表示中 / 全${IMP_CTX.rows.length}行）` : `（全${IMP_CTX.rows.length}行）`;
+    note.textContent = `ヘッダー: ${H.join(', ')} ${more}`;
+  }
+}
+
+function parseCsvLocal(text){
+  // Sederhana: split baris, koma, dukung kutip ganda via CSV parse dasar
+  const rows = [];
+  const lines = text.split(/\r?\n/).filter(l=> l.trim()!=='');
+  if(!lines.length) return {rows:[], headers:[]};
+  const headers = splitCsvLine(lines[0]);
+  for(let i=1;i<lines.length;i++){
+    const vals = splitCsvLine(lines[i]);
+    const o={}; headers.forEach((h,idx)=> o[h]=vals[idx]??'');
+    if(Object.values(o).some(v=> String(v).trim()!=='')) rows.push(o);
+  }
+  return {rows, headers};
+}
+function splitCsvLine(line){
+  const out=[], re=/("([^"]|"")*"|[^,]*)(,|$)/g; let m;
+  while((m=re.exec(line))!==null){
+    let v=m[1]||''; 
+    v = v.trim();
+    if(v.startsWith('"') && v.endsWith('"')) v=v.slice(1,-1).replace(/""/g,'"');
+    out.push(v);
+    if(m[3]!==',') break;
+  }
+  return out;
+}
+function escapeHtml(s){ return s.replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+
+function downloadExampleCSV(){
+  // contoh minimal header sesuai mapping di backend
+  let csv='';
+  if(IMP_CTX.target==='orders'){
+    csv = '得意先,得意先品番,製番号,品名,品番,図番,通知書番号,管理No,status,current_process\n' +
+          'サンプルA,,A-001,アイテムA,PA-01,DR-01,,KAN-01,生産開始,レーザ加工\n';
+  }else if(IMP_CTX.target==='sales'){
+    csv = '受注日,得意先,品名,品番,図番,製番号,数量,希望納期,備考\n' +
+          '2025-04-01,サンプルA,アイテムA,PA-01,DR-01,A-001,10,2025-05-01,メモ\n';
+  }else{
+    csv = 'po_id,scheduled_date,qty,status\n' +
+          'PO-123,2025-04-10,5,出荷準備\n';
+  }
+  downloadFile(`example_${IMP_CTX.target}.csv`, csv);
+}
+
+async function uploadImportData(){
+  const dlg = $('#dlgImport');
+  if(!SESSION) return alert('ログインしてください');
+  if(!IMP_CTX.rows.length) return alert('ファイルを選択してください');
+
+  // Validasi header minimal
+  const H = IMP_CTX.headers.map(h=>h.toLowerCase());
+  const hasAny = (arr)=> arr.some(x=> H.includes(x.toLowerCase()));
+  if(IMP_CTX.target==='orders'){
+    if(!hasAny(['得意先','customer','cust'])) return alert('ヘッダー「得意先/Customer」が必要です');
+    if(!hasAny(['品名','item'])) return alert('ヘッダー「品名/Item」が必要です');
+  }else if(IMP_CTX.target==='sales'){
+    if(!hasAny(['受注日','order_date','date'])) return alert('ヘッダー「受注日/Date」が必要です');
+    if(!hasAny(['得意先','customer','cust'])) return alert('ヘッダー「得意先/Customer」が必要です');
+  }else{
+    if(!hasAny(['po_id','po','注番'])) return alert('ヘッダー「po_id/注番」が必要です');
+    if(!hasAny(['scheduled_date','date','出荷日'])) return alert('ヘッダー「scheduled_date/出荷日」が必要です');
+  }
+
+  try{
+    // Kirim dalam bentuk CSV text (seragam) supaya backend mappingnya konsisten
+    const csvText = jsonToCsv(IMP_CTX.rows);
+    const res = await apiPost('bulkImport', { target: IMP_CTX.target, csvText, user: SESSION });
+    alert(`インポート完了: ${res.imported} 件（スキップ: ${res.skipped}）`);
+    dlg.close();
+    // refresh data sesuai target
+    if(IMP_CTX.target==='orders')      refreshAll();
+    else if(IMP_CTX.target==='sales')  renderSales();
+    else                               refreshAll(true);
+  }catch(e){
+    alert('インポート失敗: '+(e.message||e));
+  }
+}
+function jsonToCsv(rows){
+  if(!rows.length) return '';
+  const headers = Array.from(new Set(rows.flatMap(r=> Object.keys(r))));
+  const lines = [headers.join(',')];
+  rows.forEach(r=>{
+    const line = headers.map(h=>{
+      const v = String(r[h]??'').replaceAll('"','""');
+      return `"${v}"`;
+    }).join(',');
+    lines.push(line);
+  });
+  return lines.join('\n');
+}
+
+/* ===== Helpers ===== */
+function showDoc(id,html){
+  const dlg=document.getElementById(id);
+  if(!dlg) return;
+  const body=dlg.querySelector('.body');
+  if(body) body.innerHTML=html;
+  dlg.showModal();
 }
