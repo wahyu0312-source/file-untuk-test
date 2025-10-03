@@ -23,6 +23,7 @@
       <button id="btnToPlan" class="btn ghost hidden">生産計画</button>
       <button id="btnToShip" class="btn ghost hidden">出荷予定</button>
       <button id="btnToInvoice" class="btn ghost hidden">請求書</button>
+      <button id="btnToCharts" class="btn ghost hidden">チャート</button>
       <button id="btnShowStationQR" class="btn ghost hidden">工程QR</button>
       <span id="userInfo" class="muted"></span>
       <button id="btnAddUserWeb" class="btn ghost hidden">ユーザー追加</button>
@@ -63,7 +64,6 @@
 
   <!-- Dashboard -->
   <main id="pageDash" class="container hidden">
-    <!-- Orders table at top -->
     <section class="card" id="ordersSection">
       <header class="row-between">
         <h3>オーダー一覧</h3>
@@ -76,7 +76,7 @@
       <div class="table-wrap" style="max-height:55vh">
         <table class="table s">
           <thead><tr>
-            <th>PO</th><th>得意先</th><th>製番号</th><th>品名</th><th>品番</th><th>図番</th>
+            <th>注番</th><th>得意先</th><th>製番号</th><th>品名</th><th>品番</th><th>図番</th>
             <th>状態</th><th>工程</th><th>更新日時</th><th>更新者</th><th>操作</th>
           </tr></thead>
           <tbody id="tbOrders"></tbody>
@@ -98,13 +98,6 @@
         <div class="tile"><div class="muted s">工程内滞留（現在位置）</div><div id="gridProc" class="grid grid-chips"></div></div>
       </div>
     </section>
-
-    <section class="card">
-      <h3>チャート</h3>
-      <canvas id="chartMonthly" height="160"></canvas><hr>
-      <canvas id="chartCustomer" height="160"></canvas><hr>
-      <canvas id="chartStock" height="160"></canvas>
-    </section>
   </main>
 
   <!-- Sales Orders (営業) -->
@@ -113,6 +106,8 @@
       <header class="row-between">
         <h3>受注（営業）入力</h3>
         <div class="row gap">
+          <input type="file" id="salesCSV" accept=".csv" class="hidden">
+          <button class="btn ghost" id="btnSalesImport">インポートCSV</button>
           <button class="btn ghost" id="btnSalesExport">エクスポート</button>
           <button class="btn primary" id="btnSalesSave">保存（新規/編集保存）</button>
           <button class="btn" id="btnSalesDelete">削除</button>
@@ -120,7 +115,7 @@
         </div>
       </header>
       <div class="grid">
-        <input id="so_id" placeholder="SO（編集用）">
+        <input id="so_id" placeholder="注番（編集用 or 手動発行時に指定可）">
         <input id="so_date" type="date" placeholder="受注日">
         <input id="so_cust" placeholder="得意先" list="dl_tokui">
         <input id="so_item" placeholder="品名" list="dl_hinmei">
@@ -137,7 +132,7 @@
       <header class="row-between"><h3>受注一覧</h3><input id="salesQ" placeholder="検索..." class="input"></header>
       <div class="table-wrap">
         <table class="table s">
-          <thead><tr><th>SO</th><th>受注日</th><th>得意先</th><th>品名</th><th>品番/図番</th><th>数量</th><th>希望納期</th><th>状態</th><th>PO</th><th>更新</th></tr></thead>
+          <thead><tr><th>注番</th><th>受注日</th><th>得意先</th><th>品名</th><th>品番/図番</th><th>数量</th><th>希望納期</th><th>状態</th><th>計画注番</th><th>更新</th></tr></thead>
           <tbody id="tbSales"></tbody>
         </table>
       </div>
@@ -150,6 +145,8 @@
       <header class="row-between">
         <h3>生産計画（生産現品票）</h3>
         <div class="row gap">
+          <input type="file" id="planCSV" accept=".csv" class="hidden">
+          <button class="btn ghost" id="btnPlanImport">インポートCSV</button>
           <button class="btn ghost" onclick="window.print()">印刷</button>
           <button class="btn ghost" id="btnPlanExport">エクスポート</button>
           <button class="btn ghost" id="btnPlanEdit">編集</button>
@@ -158,7 +155,7 @@
         </div>
       </header>
       <div class="grid">
-        <input id="c_po" placeholder="PO（編集用）">
+        <input id="c_po" placeholder="注番（編集用 or 手動発行時に指定可）">
         <input id="c_tsuchi" placeholder="通知書番号">
         <input id="c_tokui" placeholder="得意先" list="dl_tokui">
         <input id="c_tokui_hin" placeholder="得意先品番">
@@ -178,6 +175,8 @@
       <header class="row-between">
         <h3>出荷予定 / 出荷確認</h3>
         <div class="row gap">
+          <input type="file" id="shipCSV" accept=".csv" class="hidden">
+          <button class="btn ghost" id="btnShipImport">インポートCSV</button>
           <button class="btn ghost" onclick="window.print()">印刷</button>
           <button class="btn ghost" id="btnShipExport">エクスポート</button>
           <button class="btn ghost" id="btnShipEdit">編集</button>
@@ -186,14 +185,14 @@
         </div>
       </header>
       <div class="grid">
-        <input id="s_po" placeholder="PO ID">
+        <input id="s_po" placeholder="注番">
         <input id="s_date" type="date">
         <input id="s_qty" type="number" min="0" placeholder="数量">
-        <input id="s_shipid" placeholder="Ship ID（編集/削除用）">
+        <input id="s_shipid" placeholder="出荷ID（編集/削除用）">
       </div>
       <div class="row gap">
-        <button id="btnShipByPO" class="btn ghost grow">出荷確認書（PO）</button>
-        <button id="btnShipByID" class="btn ghost grow">出荷確認書（Ship ID）</button>
+        <button id="btnShipByPO" class="btn ghost grow">出荷確認書（注番）</button>
+        <button id="btnShipByID" class="btn ghost grow">出荷確認書（出荷ID）</button>
       </div>
     </section>
   </main>
@@ -222,12 +221,28 @@
       <h3>請求明細（編集可：単価）</h3>
       <div class="table-wrap">
         <table class="table s" id="tblInv">
-          <thead><tr><th>#</th><th>品名</th><th>品番</th><th>図番</th><th>数量</th><th>単価</th><th>金額</th><th>PO</th><th>出荷ID</th></tr></thead>
+          <thead><tr><th>#</th><th>品名</th><th>品番</th><th>図番</th><th>数量</th><th>単価</th><th>金額</th><th>注番</th><th>出荷ID</th></tr></thead>
           <tbody id="invLines"></tbody>
           <tfoot><tr><td colspan="5"></td><td class="muted">小計</td><td id="invSub">0</td><td colspan="2"></td></tr>
                  <tr><td colspan="5"></td><td class="muted">税額(10%)</td><td id="invTax">0</td><td colspan="2"></td></tr>
                  <tr><td colspan="5"></td><td class="muted"><b>合計</b></td><td id="invTotal"><b>0</b></td><td colspan="2"></td></tr></tfoot>
         </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Charts -->
+  <main id="pageCharts" class="container hidden">
+    <section class="card">
+      <header class="row-between"><h3>チャート（可視化）</h3>
+        <div class="row gap">
+          <button class="btn ghost" id="btnChartsRefresh">更新</button>
+        </div>
+      </header>
+      <div class="grid-3">
+        <div class="tile"><canvas id="chartMonthly" height="160"></canvas></div>
+        <div class="tile"><canvas id="chartCustomer" height="160"></canvas></div>
+        <div class="tile"><canvas id="chartStock" height="160"></canvas></div>
       </div>
     </section>
   </main>
@@ -238,16 +253,36 @@
     <footer class="row-end"><button class="btn" onclick="document.getElementById('dlgStationQR').close()">閉じる</button></footer>
   </dialog>
 
-  <!-- Scan -->
+  <!-- Scan / Manual Update -->
   <dialog id="dlgScan" class="paper">
     <div class="body">
-      <h3>QRスキャン更新（PO: <span id="scanPO"></span>）</h3>
-      <p class="muted s">工程QRを読み取ると切替され履歴に記録されます。</p>
+      <h3>更新（注番: <span id="scanPO"></span>）</h3>
+      <p class="muted s">工程QRを読み取るか、手動更新を実行してください。</p>
       <video id="scanVideo" playsinline></video>
       <canvas id="scanCanvas" class="hidden"></canvas>
       <div id="scanResult" class="muted s" style="margin-top:.5rem"></div>
+      <hr>
+      <div class="grid m1">
+        <select id="manualProc">
+          <option value="">工程を選択</option>
+          <option>レーザ加工</option><option>曲げ加工</option><option>外枠組立</option>
+          <option>シャッター組立</option><option>シャッター溶接</option><option>コーキング</option>
+          <option>外枠塗装</option><option>組立（組立中）</option><option>組立（組立済）</option>
+          <option>外注</option><option>検査工程</option>
+        </select>
+        <select id="manualStatus">
+          <option value="">状態を選択</option>
+          <option>生産開始</option><option>検査保留</option><option>検査済</option>
+          <option>出荷準備</option><option>出荷済</option><option>不良品（要リペア）</option>
+        </select>
+        <input id="manualNote" placeholder="備考（任意）">
+        <button class="btn" id="btnManualUpdate">手動更新</button>
+      </div>
     </div>
-    <footer class="row-end"><button class="btn ghost" id="btnScanStart">開始</button><button class="btn" id="btnScanClose">閉じる</button></footer>
+    <footer class="row-end">
+      <button class="btn ghost" id="btnScanStart">QR開始</button>
+      <button class="btn" id="btnScanClose">閉じる</button>
+    </footer>
   </dialog>
 
   <!-- Docs -->
