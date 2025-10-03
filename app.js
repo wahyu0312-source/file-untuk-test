@@ -1,5 +1,14 @@
+/* =========================================================
+ *  app.js — Tokyo Seimitsu ERP (Frontend)
+ *  - Pewarnaan 状況/工程 (via CSS classes) -> sudah di style.css
+ *  - Layout 操作 2-baris -> renderOrders() membangkitkan .actions-2col
+ *  - Menu 統計 (Charts) dipisah ke pageCharts
+ *  - Menu 設定 menyatukan: 工程QR / ユーザー追加 / パス変更 / ログアウト
+ *  - Kompatibel dengan backend Apps Script (Code.gs) yang Anda pakai
+ * ========================================================= */
+
 /* ===== Config ===== */
-const API_BASE = "https://script.google.com/macros/s/AKfycbwnU2BvQ6poO4EmMut3g5Zuu_cuojNbTmM8oRSCyNJDwm_38VgS7BhsFLKU0eoUt-BAKw/exec";  // << GANTI
+const API_BASE = "https://script.google.com/macros/s/AKfycbwnU2BvQ6poO4EmMut3g5Zuu_cuojNbTmM8oRSCyNJDwm_38VgS7BhsFLKU0eoUt-BAKw/exec";  // << GANTI jika perlu
 const API_KEY  = ""; // optional
 
 const PROCESSES = [
@@ -34,7 +43,8 @@ const fmtD = (s)=> s? new Date(s).toLocaleDateString(): '';
 
 let SESSION=null, CURRENT_PO=null, scanStream=null, scanTimer=null;
 let INV_PREVIEW={info:null, lines:[]};
-/* ===== Visual mapping ===== */
+
+/* ===== Visual mapping (kelas CSS sudah di style.css) ===== */
 const STATUS_CLASS = {
   '生産開始':'st-begin',
   '検査工程':'st-inspect',
@@ -102,14 +112,13 @@ function showApiError(action, err){
 
 /* ===== Boot ===== */
 window.addEventListener('DOMContentLoaded', ()=>{
-  // Nav
+  /* ---------- Nav ke pages ---------- */
   const btnToDash     = $('#btnToDash');
   const btnToSales    = $('#btnToSales');
   const btnToPlan     = $('#btnToPlan');
   const btnToShip     = $('#btnToShip');
   const btnToInvoice  = $('#btnToInvoice');
   const btnToCharts   = $('#btnToCharts');
-  const btnShowStationQR = $('#btnShowStationQR');
 
   if(btnToDash)    btnToDash.onclick    = ()=> show('pageDash');
   if(btnToSales)   btnToSales.onclick   = ()=> show('pageSales');
@@ -117,20 +126,26 @@ window.addEventListener('DOMContentLoaded', ()=>{
   if(btnToShip)    btnToShip.onclick    = ()=> show('pageShip');
   if(btnToInvoice) btnToInvoice.onclick = ()=> show('pageInvoice');
   if(btnToCharts)  btnToCharts.onclick  = ()=> { show('pageCharts'); ensureChartsLoaded(); };
-  if(btnShowStationQR) btnShowStationQR.onclick = openStationQR;
 
-  // Auth
+  /* ---------- Settings menu (設定) ---------- */
+  const miStationQR   = $('#miStationQR');
+  const miAddUser     = $('#miAddUser');
+  const miChangePass  = $('#miChangePass');
+  const btnLogoutMenu = $('#btnLogout'); // item di dropdown 設定
+
+  if(miStationQR)  miStationQR.onclick  = openStationQR;
+  if(miAddUser)    miAddUser.onclick    = openAddUserModal;
+  if(miChangePass) miChangePass.onclick = changePasswordUI;
+  if(btnLogoutMenu)btnLogoutMenu.onclick= ()=>{ SESSION=null; localStorage.removeItem('erp_session'); location.reload(); };
+
+  /* ---------- Auth ---------- */
   const btnLogin      = $('#btnLogin');
   const btnNewUser    = $('#btnNewUser');
-  const btnLogout     = $('#btnLogout');
-  const btnChangePass = $('#btnChangePass');
 
-  if(btnLogin)      btnLogin.onclick      = onLogin;
-  if(btnNewUser)    btnNewUser.onclick    = addUserFromLoginUI;
-  if(btnLogout)     btnLogout.onclick     = ()=>{ SESSION=null; localStorage.removeItem('erp_session'); location.reload(); };
-  if(btnChangePass) btnChangePass.onclick = changePasswordUI;
+  if(btnLogin)   btnLogin.onclick   = onLogin;
+  if(btnNewUser) btnNewUser.onclick = addUserFromLoginUI;
 
-  // Dashboard
+  /* ---------- Dashboard ---------- */
   const btnRefresh = $('#btnRefresh');
   const searchQ    = $('#searchQ');
   const btnExportOrders = $('#btnExportOrders');
@@ -141,7 +156,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   if(btnExportOrders)  btnExportOrders.onclick  = exportOrdersCSV;
   if(btnExportShip)    btnExportShip.onclick    = exportShipCSV;
 
-  // Sales
+  /* ---------- Sales ---------- */
   const btnSalesSave   = $('#btnSalesSave');
   const btnSalesDelete = $('#btnSalesDelete');
   const btnSalesExport = $('#btnSalesExport');
@@ -154,7 +169,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   if(btnPromote)     btnPromote.onclick     = promoteSalesUI;
   if(salesQ)         salesQ.addEventListener('input', renderSales);
 
-  // Plan
+  /* ---------- Plan ---------- */
   const btnCreateOrder = $('#btnCreateOrder');
   const btnPlanExport  = $('#btnPlanExport');
   const btnPlanEdit    = $('#btnPlanEdit');
@@ -165,7 +180,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   if(btnPlanEdit)    btnPlanEdit.onclick    = loadOrderForEdit;
   if(btnPlanDelete)  btnPlanDelete.onclick  = deleteOrderUI;
 
-  // Ship
+  /* ---------- Ship ---------- */
   const btnSchedule    = $('#btnSchedule');
   const btnShipExport  = $('#btnShipExport');
   const btnShipEdit    = $('#btnShipEdit');
@@ -180,13 +195,13 @@ window.addEventListener('DOMContentLoaded', ()=>{
   if(btnShipByPO)   btnShipByPO.onclick   = ()=>{ const po=$('#s_po').value.trim(); if(!po) return alert('注番入力'); openShipByPO(po); };
   if(btnShipByID)   btnShipByID.onclick   = ()=>{ const id=prompt('Ship ID:'); if(!id) return; openShipByID(id.trim()); };
 
-  // Scan
+  /* ---------- Scan ---------- */
   const btnScanStart = $('#btnScanStart');
   const btnScanClose = $('#btnScanClose');
   if(btnScanStart) btnScanStart.onclick = scanStart;
   if(btnScanClose) btnScanClose.onclick = scanClose;
 
-  // Invoice
+  /* ---------- Invoice ---------- */
   const btnInvPreview = $('#btnInvPreview');
   const btnInvCreate  = $('#btnInvCreate');
   const btnInvPrint   = $('#btnInvPrint');
@@ -197,17 +212,17 @@ window.addEventListener('DOMContentLoaded', ()=>{
   if(btnInvPrint)   btnInvPrint.onclick   = ()=> openInvoiceDoc(INV_PREVIEW.inv_id||'');
   if(btnInvCSV)     btnInvCSV.onclick     = exportInvoiceCSV;
 
-  // Charts page
+  /* ---------- Charts page ---------- */
   const btnChartsRefresh = $('#btnChartsRefresh');
   if(btnChartsRefresh) btnChartsRefresh.onclick = renderCharts;
   fillChartYearSelector();
 
-  // Restore session
+  /* ---------- Restore session ---------- */
   const saved=localStorage.getItem('erp_session');
   if(saved){ SESSION=JSON.parse(saved); enter(); } else { show('authView'); }
 });
 
-/* ===== UI ===== */
+/* ===== UI helpers ===== */
 function show(id){
   const ids=['authView','pageDash','pageSales','pagePlan','pageShip','pageInvoice','pageCharts'];
   ids.forEach(x=>{
@@ -221,14 +236,15 @@ function enter(){
   const ui=$('#userInfo');
   if(ui && SESSION) ui.textContent = `${SESSION.full_name}・${SESSION.department}`;
 
-  const ids=['btnLogout','btnChangePass','btnToDash','btnToSales','btnToPlan','btnToShip','btnToInvoice','btnToCharts','btnShowStationQR'];
-  ids.forEach(id=>{ const el=$('#'+id); if(el) el.classList.remove('hidden'); });
+  // tampilkan page buttons + Settings dropdown
+  ['btnToDash','btnToSales','btnToPlan','btnToShip','btnToInvoice','btnToCharts'].forEach(id=>{
+    const el=$('#'+id); if(el) el.classList.remove('hidden');
+  });
+  const dd=$('#ddSetting'); if(dd) dd.classList.remove('hidden');
 
-  const addUserBtn=$('#btnAddUserWeb');
-  if(addUserBtn){
-    if (SESSION.role==='admin' || SESSION.department==='生産技術') addUserBtn.classList.remove('hidden');
-    else addUserBtn.classList.add('hidden');
-    addUserBtn.onclick = openAddUserModal;
+  // 权限 untuk AddUser (hanya admin/生産技術)
+  if(!(SESSION.role==='admin' || SESSION.department==='生産技術')){
+    const miAddUser=$('#miAddUser'); if(miAddUser) miAddUser.classList.add('hidden');
   }
 
   show('pageDash');
@@ -316,7 +332,6 @@ async function listOrders(){
   const q = qEl ? qEl.value.trim() : '';
   return apiGet({action:'listOrders',q});
 }
-/* ===== Orders table (baru, dengan warna & layout) ===== */
 async function renderOrders(){
   const tbody=$('#tbOrders'); if(!tbody) return;
   const rows=await listOrders();
@@ -328,7 +343,7 @@ async function renderOrders(){
     const stClass = STATUS_CLASS[statusName] || 'st-begin';
     const prClass = PROC_CLASS[procName]   || 'prc-out';
 
-    // Sub-baris 注番 + 得意先 (di kolom pertama)
+    // Sub-baris 注番 + 得意先 (kolom pertama)
     const leftCell = `
       <div class="row-main">
         <a href="javascript:void(0)" onclick="openTicket('${r.po_id}')" class="link"><b>${r.po_id}</b></a>
@@ -339,23 +354,17 @@ async function renderOrders(){
         </div>
       </div>`;
 
-    // 状況 & 工程 badge elegan
-    const statusBadge = `
-      <span class="badge ${stClass}">
-        <span class="dot"></span><span>${statusName||'-'}</span>
-      </span>`;
-    const procBadge = `
-      <span class="badge ${prClass}">
-        <span class="dot"></span><span>${procName||'-'}</span>
-      </span>`;
+    // 状況 & 工程 badge
+    const statusBadge = `<span class="badge ${stClass}"><span class="dot"></span><span>${statusName||'-'}</span></span>`;
+    const procBadge   = `<span class="badge ${prClass}"><span class="dot"></span><span>${procName||'-'}</span></span>`;
 
     // 操作 2-baris
     const actions = `
       <div class="actions-2col">
-        <button class="btn ghost s icon" onclick="openTicket('${r.po_id}')">票</button>
-        <button class="btn ghost s icon" onclick="startScanFor('${r.po_id}')">更新</button>
-        <button class="btn ghost s icon" onclick="openShipByPO('${r.po_id}')">出荷票</button>
-        <button class="btn ghost s icon" onclick="openHistory('${r.po_id}')">履歴</button>
+        <button class="btn ghost s" onclick="openTicket('${r.po_id}')"><i class="fa-regular fa-file-lines"></i> 票</button>
+        <button class="btn ghost s" onclick="startScanFor('${r.po_id}')"><i class="fa-solid fa-qrcode"></i> 更新</button>
+        <button class="btn ghost s" onclick="openShipByPO('${r.po_id}')"><i class="fa-solid fa-truck"></i> 出荷票</button>
+        <button class="btn ghost s" onclick="openHistory('${r.po_id}')"><i class="fa-solid fa-clock-rotate-left"></i> 履歴</button>
       </div>`;
 
     return `<tr>
@@ -371,12 +380,8 @@ async function renderOrders(){
     </tr>`;
   }).join('');
 
-  // Catatan: urutan head tabel Anda saat ini adalah:
-  // 注番/PO | 得意先 | 製番号 | 品名 | 品番 | 図番 | 状態 | 工程 | 更新日時 | 更新者 | 操作
-  // Versi baru di atas menempatkan sub-baris di kolom pertama (PO) & warna pada 状況/工程.
   tbody.innerHTML = html;
 }
-
 
 /* ===== Sales (営業) ===== */
 async function renderSales(){
@@ -640,7 +645,7 @@ async function openHistory(po_id){
   }catch(e){ alert(e.message||e); }
 }
 
-/* ===== Add user (navbar) ===== */
+/* ===== Add user (from 設定) ===== */
 function openAddUserModal(){
   if(!(SESSION && (SESSION.role==='admin'||SESSION.department==='生産技術'))) return alert('権限不足');
   const html=`<h3>ユーザー追加</h3>
@@ -668,7 +673,7 @@ function openAddUserModal(){
   };
 }
 
-/* ===== Invoice UI (lengkap) ===== */
+/* ===== Invoice UI ===== */
 function recalcInvoiceTotals(){
   let sub=0;
   const rows=[...document.querySelectorAll('#invLines tr')];
