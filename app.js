@@ -24,6 +24,7 @@ const fmtD  = s=> s? new Date(s).toLocaleDateString(): '';
 
 let SESSION=null, CURRENT_PO=null, scanStream=null, scanTimer=null;
 let INV_PREVIEW={info:null, lines:[]};
+let chM=null,chC=null,chS=null;
 
 /* ===== UI helpers (pewarnaan 工程 & badge 状態) ===== */
 function PROC_CLASS(p){
@@ -43,7 +44,7 @@ function PROC_CLASS(p){
     default: return '';
   }
 }
-function STATUS_CLASS(){ return 'badge'; } // gunakan styling .badge yang sudah ada
+function STATUS_CLASS(){ return 'badge'; }
 
 /* Debounce input */
 function debounceInput(el, fn, wait=200){
@@ -65,6 +66,11 @@ async function apiGet(params){
 
 /* ===== Boot ===== */
 window.addEventListener('DOMContentLoaded', ()=>{
+  // Hamburger (mobile)
+  $('#btnHamb')?.addEventListener('click', ()=>{
+    $('#navRight')?.classList.toggle('open');
+  });
+
   // Nav
   $('#btnToDash')?.addEventListener('click', ()=>show('pageDash'));
   $('#btnToSales')?.addEventListener('click', ()=>show('pageSales'));
@@ -72,7 +78,6 @@ window.addEventListener('DOMContentLoaded', ()=>{
   $('#btnToShip')?.addEventListener('click', ()=>show('pageShip'));
   $('#btnToInvoice')?.addEventListener('click', ()=>show('pageInvoice'));
   $('#btnShowStationQR')?.addEventListener('click', openStationQR);
-  // New menus
   $('#btnToStock')?.addEventListener('click', ()=>{ show('pageStock'); renderStock(); });
   $('#btnToFinished')?.addEventListener('click', ()=>{ show('pageFinished'); renderFinished(); });
 
@@ -82,9 +87,11 @@ window.addEventListener('DOMContentLoaded', ()=>{
   $('#btnLogout')?.addEventListener('click', ()=>{ SESSION=null; localStorage.removeItem('erp_session'); location.reload(); });
   $('#btnChangePass')?.addEventListener('click', changePasswordUI);
 
-  // Dashboard
+  // Dashboard: filter & export
   $('#btnRefresh')?.addEventListener('click', refreshAll);
   $('#searchQ')?.addEventListener('input', renderOrders);
+  $('#fOnlyWip')?.addEventListener('change', renderOrders);
+  $('#fOnlyReady')?.addEventListener('change', renderOrders);
   $('#btnExportOrders')?.addEventListener('click', exportOrdersCSV);
   $('#btnExportShip')?.addEventListener('click', exportShipCSV);
 
@@ -106,7 +113,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   $('#btnShipExport')?.addEventListener('click', exportShipCSV);
   $('#btnShipEdit')?.addEventListener('click', loadShipForEdit);
   $('#btnShipDelete')?.addEventListener('click', deleteShipUI);
-  $('#btnShipByPO')?.addEventListener('click', ()=>{ const po=$('#s_po').value.trim(); if(!po) return alert('PO入力'); openShipByPO(po); });
+  $('#btnShipByPO')?.addEventListener('click', ()=>{ const po=$('#s_po').value.trim(); if(!po) return alert('注番入力'); openShipByPO(po); });
   $('#btnShipByID')?.addEventListener('click', ()=>{ const id=prompt('Ship ID:'); if(!id) return; openShipByID(id.trim()); });
 
   // Scan
@@ -125,7 +132,10 @@ window.addEventListener('DOMContentLoaded', ()=>{
   $('#btnExportStock')?.addEventListener('click', exportStockCSV);
   $('#btnExportFinished')?.addEventListener('click', exportFinishedCSV);
 
-  // Restore
+  // Charts lazy-init
+  setupChartLazyInit();
+
+  // Restore session
   const saved=localStorage.getItem('erp_session');
   if(saved){ SESSION=JSON.parse(saved); enter(); } else show('authView');
 });
@@ -138,7 +148,7 @@ function show(id){
 }
 function enter(){
   $('#userInfo').textContent = `${SESSION.full_name}・${SESSION.department}`;
-  ['btnLogout','btnChangePass','btnToDash','btnToSales','btnToPlan','btnToShip','btnToInvoice','btnShowStationQR','btnToStock','btnToFinished']
+  ['btnLogout','btnChangePass','btnToDash','btnToSales','btnToPlan','btnToShip','btnToInvoice','btnShowStationQR','btnToStock','btnToFinished','ddReports','ddSettings']
     .forEach(id=>$('#'+id)?.classList.remove('hidden'));
   if (SESSION.role==='admin' || SESSION.department==='生産技術') $('#btnAddUserWeb')?.classList.remove('hidden'); else $('#btnAddUserWeb')?.classList.add('hidden');
   $('#btnAddUserWeb')?.addEventListener('click', openAddUserModal);
@@ -184,10 +194,20 @@ async function loadMasters(){
 /* ===== Dashboard ===== */
 async function refreshAll(keep=false){
   try{
-    const s=await apiGet({action:'stock'});
-    $('#statFinished').textContent=s.finishedStock;
-    $('#statReady').textContent=s.ready;
-    $('#statShipped').textContent=s.shipped;
+    // summary cepat untuk TV (opsional backend Code.gs: action=summary)
+    try{
+      const s=await apiGet({action:'summary'});
+      if (s && typeof s.finishedStock!=='undefined'){
+        $('#statFinished').textContent=s.finishedStock;
+        $('#statReady').textContent=s.ready;
+        $('#statShipped').textContent=s.shipped;
+      }
+    }catch{ // fallback ke endpoint lama
+      const s=await apiGet({action:'stock'});
+      $('#statFinished').textContent=s.finishedStock;
+      $('#statReady').textContent=s.ready;
+      $('#statShipped').textContent=s.shipped;
+    }
 
     const today=await apiGet({action:'todayShip'});
     $('#listToday').innerHTML = today.length
@@ -198,10 +218,25 @@ async function refreshAll(keep=false){
     $('#gridProc').innerHTML = PROCESSES.map(p=> `<div class="grid-chip proc ${PROC_CLASS(p)}"><div class="muted s">${p}</div><div class="h">${loc[p]||0}</div></div>`).join('');
 
     if(!keep) $('#searchQ').value='';
-    await renderOrders(); await renderCharts(); await renderSales();
+    await renderOrders();
+    await maybeInitCharts(); // lazy
+    await renderSales();
   }catch(e){ console.error(e); }
 }
-let chM=null,chC=null,chS=null;
+
+/* Charts: lazy init ketika canvas terlihat */
+function setupChartLazyInit(){
+  const targets=[...document.querySelectorAll('.chart-lazy')];
+  if(!('IntersectionObserver' in window) || !targets.length){ renderCharts(); return; }
+  const io=new IntersectionObserver((entries, obs)=>{
+    const vis = entries.some(e=> e.isIntersecting);
+    if(vis){ renderCharts(); obs.disconnect(); }
+  }, { root:null, threshold:0.1 });
+  targets.forEach(t=> io.observe(t));
+}
+async function maybeInitCharts(){
+  // no-op; actual init triggered by IntersectionObserver
+}
 async function renderCharts(){
   const d=await apiGet({action:'charts'}), months=['1','2','3','4','5','6','7','8','9','10','11','12'];
   chM?.destroy(); chM=new Chart($('#chartMonthly'),{type:'bar',data:{labels:months,datasets:[{label:'月別出荷数量（'+d.year+'）',data:d.perMonth}] }});
@@ -209,14 +244,33 @@ async function renderCharts(){
   chS?.destroy(); chS=new Chart($('#chartStock'),{type:'pie',data:{labels:Object.keys(d.stockBuckets),datasets:[{label:'在庫区分',data:Object.values(d.stockBuckets)}]}});
 }
 
+/* ===== Efficient table rendering ===== */
+function renderRowsFast(rows, mapRowHtml, tbodySel){
+  const tbody = typeof tbodySel==='string' ? $(tbodySel) : tbodySel;
+  const frag=document.createDocumentFragment();
+  for(const r of rows){
+    const tr=document.createElement('tr');
+    tr.innerHTML=mapRowHtml(r);
+    // Move children to tr (to avoid nested tr). We built as inner HTML single <tr> content:
+    const inner = tr.firstElementChild && tr.firstElementChild.tagName==='TD' ? tr : (()=>{ const wrap=document.createElement('tbody'); wrap.innerHTML=mapRowHtml(r); return wrap.firstElementChild; })();
+    frag.appendChild(inner);
+  }
+  tbody.innerHTML=''; tbody.appendChild(frag);
+}
+
 /* ===== Orders table ===== */
-async function listOrders(){ const q=$('#searchQ').value.trim(); return apiGet({action:'listOrders',q}); }
+async function listOrders(){
+  const q=$('#searchQ').value.trim();
+  let rows = await apiGet({action:'listOrders',q});
+  if($('#fOnlyWip')?.checked) rows = rows.filter(r=> r.status!=='出荷済');
+  if($('#fOnlyReady')?.checked) rows = rows.filter(r=> ['検査済','出荷準備'].includes(r.status));
+  return rows;
+}
 async function renderOrders(){
   const rows=await listOrders();
-  $('#tbOrders').innerHTML = rows.map(r=>{
+  const htmlMap = (r)=>{
     const procCls=PROC_CLASS(r.current_process); const stCls=STATUS_CLASS(r.status);
     return `
-    <tr class="proc ${procCls}">
       <td><b>${r.po_id}</b></td>
       <td>${r['得意先']||''}</td>
       <td>${r['製番号']||''}</td>
@@ -229,24 +283,26 @@ async function renderOrders(){
       <td class="s muted">${r.updated_by||''}</td>
       <td class="s">
         <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.3rem">
-          <button class="btn ghost s" onclick="openTicket('${r.po_id}')">票</button>
-          <button class="btn ghost s" onclick="openShipByPO('${r.po_id}')">出荷票</button>
-          <button class="btn ghost s" onclick="startScanFor('${r.po_id}')">更新</button>
-          <button class="btn ghost s" onclick="openHistory('${r.po_id}')">履歴</button>
+          <button class="btn ghost s" onclick="openTicket('${r.po_id}')"><span class="material-symbols-rounded s">article</span>票</button>
+          <button class="btn ghost s" onclick="openShipByPO('${r.po_id}')"><span class="material-symbols-rounded s">local_shipping</span>出荷票</button>
+          <button class="btn ghost s" onclick="startScanFor('${r.po_id}')"><span class="material-symbols-rounded s">qr_code_scanner</span>更新</button>
+          <button class="btn ghost s" onclick="openHistory('${r.po_id}')"><span class="material-symbols-rounded s">history</span>履歴</button>
         </div>
       </td>
-    </tr>`;
-  }).join('');
+    `;
+  };
+  // Build tr with class
+  const mapRow = (r)=> `<tr class="proc ${PROC_CLASS(r.current_process)}">${htmlMap(r)}</tr>`;
+  renderRowsFast(rows, mapRow, '#tbOrders');
 }
 
-/* ===== NEW: 在庫 (Stock) ===== */
+/* ===== 在庫 ===== */
 async function listInventory(){ const q=$('#stockQ')?.value?.trim()||''; return apiGet({action:'listInventory',q}); }
 async function renderStock(){
   const rows=await listInventory();
-  $('#tbStock').innerHTML = rows.map(r=>{
-    const procCls=PROC_CLASS(r.current_process); const stCls=STATUS_CLASS(r.status);
-    return `
-    <tr class="proc ${procCls}">
+  const mapRow = (r)=>{
+    const stCls=STATUS_CLASS(r.status);
+    return `<tr class="proc ${PROC_CLASS(r.current_process)}">
       <td><b>${r.po_id}</b></td>
       <td>${r['得意先']||''}</td>
       <td>${r['製番号']||''}</td>
@@ -259,25 +315,25 @@ async function renderStock(){
       <td class="s muted">${r.updated_by||''}</td>
       <td class="s">
         <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.3rem">
-          <button class="btn ghost s" onclick="openTicket('${r.po_id}')">票</button>
-          <button class="btn ghost s" onclick="openShipByPO('${r.po_id}')">出荷票</button>
-          <button class="btn ghost s" onclick="startScanFor('${r.po_id}')">更新</button>
-          <button class="btn ghost s" onclick="openHistory('${r.po_id}')">履歴</button>
+          <button class="btn ghost s" onclick="openTicket('${r.po_id}')"><span class="material-symbols-rounded s">article</span>票</button>
+          <button class="btn ghost s" onclick="openShipByPO('${r.po_id}')"><span class="material-symbols-rounded s">local_shipping</span>出荷票</button>
+          <button class="btn ghost s" onclick="startScanFor('${r.po_id}')"><span class="material-symbols-rounded s">qr_code_scanner</span>更新</button>
+          <button class="btn ghost s" onclick="openHistory('${r.po_id}')"><span class="material-symbols-rounded s">history</span>履歴</button>
         </div>
       </td>
     </tr>`;
-  }).join('');
+  };
+  renderRowsFast(rows, mapRow, '#tbStock');
 }
 async function exportStockCSV(){ const rows=await apiGet({action:'listInventory'}); downloadCSV('stock.csv',rows); }
 
-/* ===== NEW: 完成品一覧 (Finished Goods) ===== */
+/* ===== 完成品一覧 ===== */
 async function listFinished(){ const q=$('#finishedQ')?.value?.trim()||''; return apiGet({action:'listFinished',q}); }
 async function renderFinished(){
   const rows=await listFinished();
-  $('#tbFinished').innerHTML = rows.map(r=>{
-    const procCls=PROC_CLASS(r.current_process); const stCls=STATUS_CLASS(r.status);
-    return `
-    <tr class="proc ${procCls}">
+  const mapRow = (r)=>{
+    const stCls=STATUS_CLASS(r.status);
+    return `<tr class="proc ${PROC_CLASS(r.current_process)}">
       <td><b>${r.po_id}</b></td>
       <td>${r['得意先']||''}</td>
       <td>${r['製番号']||''}</td>
@@ -290,22 +346,25 @@ async function renderFinished(){
       <td class="s muted">${r.updated_by||''}</td>
       <td class="s">
         <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.3rem">
-          <button class="btn ghost s" onclick="openTicket('${r.po_id}')">票</button>
-          <button class="btn ghost s" onclick="openShipByPO('${r.po_id}')">出荷票</button>
-          <button class="btn ghost s" onclick="startScanFor('${r.po_id}')">更新</button>
-          <button class="btn ghost s" onclick="openHistory('${r.po_id}')">履歴</button>
+          <button class="btn ghost s" onclick="openTicket('${r.po_id}')"><span class="material-symbols-rounded s">article</span>票</button>
+          <button class="btn ghost s" onclick="openShipByPO('${r.po_id}')"><span class="material-symbols-rounded s">local_shipping</span>出荷票</button>
+          <button class="btn ghost s" onclick="startScanFor('${r.po_id}')"><span class="material-symbols-rounded s">qr_code_scanner</span>更新</button>
+          <button class="btn ghost s" onclick="openHistory('${r.po_id}')"><span class="material-symbols-rounded s">history</span>履歴</button>
         </div>
       </td>
     </tr>`;
-  }).join('');
+  };
+  renderRowsFast(rows, mapRow, '#tbFinished');
 }
 async function exportFinishedCSV(){ const rows=await apiGet({action:'listFinished'}); downloadCSV('finished_goods.csv',rows); }
 
 /* ===== Sales (営業) ===== */
 async function renderSales(){
   const q=$('#salesQ').value?.trim()||''; const rows=await apiGet({action:'listSales',q});
-  $('#tbSales').innerHTML = rows.map(r=>`
-    <tr>
+  const frag=document.createDocumentFragment();
+  rows.forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = `
       <td>${r.so_id}</td>
       <td class="s muted">${fmtD(r['受注日'])}</td>
       <td>${r['得意先']||''}</td>
@@ -315,8 +374,11 @@ async function renderSales(){
       <td class="s muted">${fmtD(r['希望納期'])}</td>
       <td><span class="badge">${r.status||''}</span></td>
       <td>${r['linked_po_id']||''}</td>
-      <td class="s muted">${fmtDT(r['updated_at'])}</td>
-    </tr>`).join('');
+      <td class="s muted">${fmtDT(r['更新日時']||r['updated_at'])}</td>
+    `;
+    frag.appendChild(tr);
+  });
+  $('#tbSales').innerHTML=''; $('#tbSales').appendChild(frag);
 }
 async function saveSalesUI(){
   const p={'受注日':$('#so_date').value,'得意先':$('#so_cust').value,'品名':$('#so_item').value,'品番':$('#so_part').value,'図番':$('#so_drw').value,'製番号':$('#so_sei').value,'数量':$('#so_qty').value,'希望納期':$('#so_req').value,'備考':$('#so_note').value};
@@ -328,12 +390,12 @@ async function saveSalesUI(){
   }catch(e){ alert(e.message||e); }
 }
 async function deleteSalesUI(){
-  const so=$('#so_id').value.trim(); if(!so) return alert('SO入力');
+  const so=$('#so_id').value.trim(); if(!so) return alert('注番入力');
   if(!confirm('削除しますか？')) return;
   try{ const r=await apiPost('deleteSalesOrder',{so_id:so,user:SESSION}); alert('削除: '+r.deleted); renderSales(); }catch(e){ alert(e.message||e); }
 }
 async function promoteSalesUI(){
-  const so=$('#so_id').value.trim(); if(!so) return alert('SO入力');
+  const so=$('#so_id').value.trim(); if(!so) return alert('注番入力');
   try{ const r=await apiPost('promoteSalesToPlan',{so_id:so,user:SESSION}); alert('生産計画を作成: '+r.po_id); refreshAll(); }catch(e){ alert(e.message||e); }
 }
 async function exportSalesCSV(){ const rows=await apiGet({action:'listSales'}); downloadCSV('sales_orders.csv', rows); }
@@ -350,7 +412,7 @@ async function createOrderUI(){
   }catch(e){ alert(e.message||e); }
 }
 async function loadOrderForEdit(){
-  const po=$('#c_po').value.trim(); if(!po) return alert('PO入力');
+  const po=$('#c_po').value.trim(); if(!po) return alert('注番入力');
   try{
     const o=await apiGet({action:'ticket',po_id:po});
     $('#c_tsuchi').value=o['通知書番号']||''; $('#c_tokui').value=o['得意先']||''; $('#c_tokui_hin').value=o['得意先品番']||'';
@@ -360,7 +422,7 @@ async function loadOrderForEdit(){
 }
 async function deleteOrderUI(){
   if(!(SESSION.role==='admin'||SESSION.department==='生産技術'||SESSION.department==='生産管理部')) return alert('権限不足');
-  const po=$('#c_po').value.trim(); if(!po) return alert('PO入力');
+  const po=$('#c_po').value.trim(); if(!po) return alert('注番入力');
   if(!confirm('削除しますか？')) return;
   try{ const r=await apiPost('deleteOrder',{po_id:po,user:SESSION}); alert('削除:'+r.deleted); refreshAll(); }catch(e){ alert(e.message||e); }
 }
@@ -369,7 +431,7 @@ async function deleteOrderUI(){
 async function scheduleUI(){
   if(!(SESSION.role==='admin'||SESSION.department==='生産技術'||SESSION.department==='生産管理部')) return alert('権限不足');
   const po=$('#s_po').value.trim(), dateIso=$('#s_date').value, qty=$('#s_qty').value;
-  if(!po||!dateIso) return alert('POと日付');
+  if(!po||!dateIso) return alert('注番と日付');
   try{
     const shipId=$('#s_shipid').value.trim();
     if (shipId){
@@ -442,7 +504,7 @@ function downloadFile(name,content){
   a.download=name; a.click();
 }
 
-/* ===== Station QR (qrcodejs) ===== */
+/* ===== Station QR ===== */
 function openStationQR(){
   const wrap = $('#qrWrap'); if(!wrap){ alert('QRコンテナが見つかりません'); return; }
   wrap.innerHTML = '';
@@ -481,8 +543,7 @@ async function scanStart(){
         if(/^ST:/.test(text) && CURRENT_PO){
           const station=text.slice(3); const rule=STATION_RULES[station]; if(!rule){ $('#scanResult').textContent='未知のステーション: '+station; return; }
           try{
-            const cur=await apiGet({action:'ticket',po_id:CURRENT_PO});
-            const updates=rule(cur);
+            const cur=await apiGet({action:'ticket',po_id:CURRENT_PO}); const updates=rule(cur);
             await apiPost('updateOrder',{po_id:CURRENT_PO,updates,user:SESSION});
             $('#scanResult').textContent=`更新完了: ${CURRENT_PO} → ${updates.status||'(状態変更なし)'} / ${updates.current_process||cur.current_process}`;
             refreshAll(true);
@@ -534,9 +595,9 @@ function openAddUserModal(){
 function recalcInvoiceTotals(){
   let sub=0;
   [...document.querySelectorAll('#invLines tr')].forEach(tr=>{
-    const qty=Number(tr.querySelector('.q').value||0);
-    const up =Number(tr.querySelector('.p').value||0);
-    const amt=qty*up; tr.querySelector('.a').textContent=amt.toLocaleString();
+    const qty=Number(tr.querySelector('.q')?.value||0);
+    const up =Number(tr.querySelector('.p')?.value||0);
+    const amt=qty*up; const amtEl=tr.querySelector('.a'); if(amtEl) amtEl.textContent=amt.toLocaleString();
     sub+=amt;
   });
   const tax=Math.round(sub*0.1), total=sub+tax;
@@ -545,7 +606,7 @@ function recalcInvoiceTotals(){
   INV_PREVIEW.info['小計']=sub; INV_PREVIEW.info['税額']=tax; INV_PREVIEW.info['合計']=total;
   INV_PREVIEW.lines = [...document.querySelectorAll('#invLines tr')].map(tr=>({
     行No:Number(tr.dataset.no), 品名:tr.dataset.hinmei, 品番:tr.dataset.hinban, 図番:tr.dataset.zuban,
-    数量:Number(tr.querySelector('.q').value||0), 単価:Number(tr.querySelector('.p').value||0),
+    数量:Number(tr.querySelector('.q')?.value||0), 単価:Number(tr.querySelector('.p')?.value||0),
     出荷IDs:tr.dataset.shipids, POs:tr.dataset.pos
   }));
 }
@@ -615,7 +676,7 @@ async function openInvoiceDoc(inv_id){
 function exportInvoiceCSV(){
   const rows=[...document.querySelectorAll('#invLines tr')].map(tr=>({
     行No:tr.dataset.no, 品名:tr.dataset.hinmei, 品番:tr.dataset.hinban, 図番:tr.dataset.zuban,
-    数量:tr.querySelector('.q').value, 単価:tr.querySelector('.p').value,
+    数量:tr.querySelector('.q')?.value, 単価:tr.querySelector('.p')?.value,
     POs:tr.dataset.pos, 出荷IDs:tr.dataset.shipids
   }));
   downloadCSV('invoice_preview.csv', rows);
