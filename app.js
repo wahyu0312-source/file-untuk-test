@@ -288,7 +288,18 @@ function show(id){
   ids.forEach(x=>{ const el=document.getElementById(x); if(el) el.classList.add('hidden'); });
   const target=document.getElementById(id);
   if(target) target.classList.remove('hidden');
+
+  // highlight tombol aktif
+  const map = {
+    pageDash:'btnToDash', pageSales:'btnToSales', pagePlan:'btnToPlan', pageShip:'btnToShip',
+    pageInventory:'btnToInvPage', pageFinished:'btnToFinPage', pageInvoice:'btnToInvoice', pageCharts:'btnToCharts'
+  };
+  Object.values(map).forEach(b=>{ const el=document.getElementById(b); if(el) el.style.boxShadow='none'; });
+  const activeBtnId = map[id];
+  const btn = activeBtnId && document.getElementById(activeBtnId);
+  if(btn) btn.style.boxShadow='0 8px 22px rgba(16,24,40,.12)';
 }
+
 function onGlobalShortcut(e){
   // aktif kalau ada <dialog open>
   const dlg=document.querySelector('dialog[open]');
