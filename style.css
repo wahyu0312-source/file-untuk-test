@@ -4,24 +4,23 @@
   --fs-base: clamp(12px, 0.9vw, 16px); --fs-s: clamp(10px, 0.75vw, 13px);
   --container: min(96vw, 1600px);
 
-  /* Menu colors */
-  --dash:#0ea5e9;      /* Sky */
-  --sales:#22c55e;     /* Green */
-  --plan:#a855f7;      /* Purple */
-  --ship:#f59e0b;      /* Amber */
-  --inv:#ef4444;       /* Red */
-  --fin:#10b981;       /* Emerald */
-  --invoice:#6366f1;   /* Indigo */
-  --charts:#06b6d4;    /* Cyan */
-
-  /* tilt default */
-  --tiltX: 0deg;
-  --tiltY: 0deg;
+  /* chip palettes (工程内滞留) */
+  --chip-a1:#eef2ff; --chip-a2:#e0f2fe; --chip-a3:#ecfeff;
+  --chip-a4:#f0fdf4; --chip-a5:#fff7ed; --chip-a6:#fef2f2;
+  --chip-b1:#c7d2fe; --chip-b2:#bae6fd; --chip-b3:#a5f3fc;
+  --chip-b4:#bbf7d0; --chip-b5:#fed7aa; --chip-b6:#fecaca;
 }
+/* Dark mode */
 @media (prefers-color-scheme: dark){
   :root{
     --bg:#0f172a; --card:#111827; --border:#263245; --ink:#e5e7eb; --muted:#94a3b8;
     --primary:#3b82f6; --primary-hover:#2563eb; --shadow:0 2px 10px rgba(0,0,0,.35);
+
+    /* tweak chips agar kontras di dark */
+    --chip-a1:#1e2750; --chip-a2:#103044; --chip-a3:#0c3c3e;
+    --chip-a4:#123224; --chip-a5:#3a2a12; --chip-a6:#3a1414;
+    --chip-b1:#4a5bcd; --chip-b2:#3b9ed4; --chip-b3:#31c2c2;
+    --chip-b4:#36c072; --chip-b5:#d98c3f; --chip-b6:#cf5f5f;
   }
 }
 
@@ -37,13 +36,17 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:var(--fs
 .grow{flex:1}
 
 /* Nav */
-.nav{
-  position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;align-items:center;
-  padding:.5rem .8rem;border-bottom:1px solid var(--border);background:var(--card);box-shadow:var(--shadow)
-}
+.nav{position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:.5rem .8rem;border-bottom:1px solid var(--border);background:var(--card);box-shadow:var(--shadow)}
 .logo{height:28px}
 .brand{margin-left:.5rem;font-weight:700;font-size:clamp(14px,1.1vw,18px)}
 .nav-right{display:flex;gap:.35rem;align-items:center;flex-wrap:wrap}
+.nav-right .btn{--tiltX:0deg; --tiltY:0deg; transform: perspective(800px) rotateX(var(--tiltX)) rotateY(var(--tiltY)); transition: transform .12s ease, background .12s ease, color .12s ease, box-shadow .12s ease;}
+.nav-right .btn.active{position:relative}
+.nav-right .btn.active::after{
+  content:""; position:absolute; left:.8rem; right:.8rem; bottom:-3px; height:2px; background:linear-gradient(90deg, rgba(37,99,235,.0), rgba(37,99,235,.9), rgba(37,99,235,.0));
+  transform:scaleX(0); transform-origin:center; animation:underline-in .24s forwards ease;
+}
+@keyframes underline-in{to{transform:scaleX(1)}}
 
 /* Corner brand */
 .corner-brand{
@@ -53,25 +56,16 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:var(--fs
   box-shadow:var(--shadow); font-size:12px;
 }
 
-/* Dropdown (Settings) */
+/* Dropdown */
 .dropdown-inline{position:relative}
 .dropdown-inline>summary{list-style:none;cursor:pointer}
 .dropdown-inline>summary::-webkit-details-marker{display:none}
 .dropdown-inline[open] .caret{transform:rotate(180deg)}
 .dropdown-inline .menu{
-  position:absolute;top:calc(100% + 6px);right:0;background:var(--card);border:1px solid var(--border);
-  border-radius:12px;box-shadow:var(--shadow);min-width:220px;padding:.35rem;z-index:20
+  position:absolute;top:calc(100% + 6px);right:0;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);min-width:220px;padding:.35rem;z-index:20
 }
-.menu .menu-item{
-  display:flex;gap:.6rem;align-items:center;width:100%;padding:.55rem .65rem;border-radius:10px;
-  border:1px solid transparent;background:transparent;color:var(--ink);cursor:pointer
-}
+.menu .menu-item{display:flex;gap:.6rem;align-items:center;width:100%;padding:.55rem .65rem;border-radius:10px;border:1px solid transparent;background:transparent;color:var(--ink);cursor:pointer}
 .menu .menu-item:hover{background:rgba(148,163,184,.12)}
-/* ikon berwarna untuk Settings menu */
-#miStationQR i{ color: var(--charts) }
-#miAddUser i{ color: var(--sales) }
-#miChangePass i{ color: var(--ship) }
-#btnLogout i{ color: var(--inv) }
 
 /* Layout */
 .container{padding:.8rem;width:var(--container);margin:0 auto}
@@ -85,7 +79,7 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:var(--fs
 /* Inputs & buttons */
 input, select, textarea{width:100%;padding:.7rem;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--ink)}
 .input{width:210px;max-width:48vw}
-.btn{padding:.55rem .9rem;border-radius:12px;border:1px solid transparent;background:var(--primary);color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;font-size:13px}
+.btn{padding:.55rem .9rem;border-radius:12px;border:1px solid transparent;background:var(--primary);color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;font-size:13px;transition: transform .12s ease, filter .12s ease}
 .btn:hover{background:var(--primary-hover)}
 .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--ink)}
 .btn.ghost:hover{background:rgba(148,163,184,.12)}
@@ -99,12 +93,16 @@ input, select, textarea{width:100%;padding:.7rem;border-radius:12px;border:1px s
 /* ===== Badges: 状況 & 工程 ===== */
 .badge{display:inline-flex;align-items:center;gap:.35rem;padding:.2rem .55rem;border-radius:999px;border:1px solid var(--border);font-size:12px;line-height:1;background:rgba(148,163,184,.08)}
 .badge .dot{width:8px;height:8px;border-radius:999px;display:inline-block}
+
+/* 状況 (Status) */
 .st-begin { border-color:#c7d2fe; background:#eef2ff; color:#27396b }
 .st-inspect { border-color:#bae6fd; background:#e0f2fe; color:#0b4666 }
 .st-hold { border-color:#fde68a; background:#fffbeb; color:#7a4b00 }
 .st-ready { border-color:#bbf7d0; background:#f0fdf4; color:#14532d }
 .st-shipped { border-color:#cbd5e1; background:#f1f5f9; color:#334155 }
 .st-ng { border-color:#fecaca; background:#fef2f2; color:#7f1d1d }
+
+/* 工程 (Process) */
 .prc-laser { border-color:#c7d2fe; background:#eef2ff; color:#27396b }
 .prc-bend { border-color:#a5f3fc; background:#ecfeff; color:#0b4666 }
 .prc-frame { border-color:#bbf7d0; background:#f0fdf4; color:#14532d }
@@ -117,13 +115,13 @@ input, select, textarea{width:100%;padding:.7rem;border-radius:12px;border:1px s
 .prc-out { border-color:#e2e8f0; background:#f8fafc; color:#334155 }
 .prc-inspect { border-color:#bae6fd; background:#f0f9ff; color:#0b4666 }
 
-/* Sub-row */
+/* Sub-row pada kolom kiri (注番 + 得意先 sejajar) */
 .row-main{display:flex;flex-direction:column;gap:.18rem}
 .row-sub{display:flex;gap:.6rem;flex-wrap:wrap}
 .row-sub .kv{display:inline-flex;gap:.25rem;align-items:center;font-size:12px;color:var(--muted)}
 .row-sub .kv b{color:var(--ink);font-weight:600}
 
-/* Actions 2 col */
+/* Operasi: grid 2 kolom */
 .actions-2col{display:grid;grid-template-columns:repeat(2,minmax(76px,1fr));gap:.35rem}
 @media(min-width:1080px){ .actions-2col{grid-template-columns:repeat(2,90px);} }
 @media(max-width:520px) { .actions-2col{grid-template-columns:repeat(2,1fr);} }
@@ -141,101 +139,57 @@ video#scanVideo{width:100%;max-height:48vh;border-radius:12px;background:#000}
 /* Stats */
 .stat-num{font-size:clamp(26px,3.5vw,42px);font-weight:800}
 
-/* Responsive */
+/* ===== 工程内滞留（現在位置） chip styling ===== */
+.grid-chip{
+  border:1px solid var(--border);border-radius:12px;padding:.6rem .7rem;
+  display:flex; align-items:center; justify-content:space-between; gap:.5rem;
+  background:linear-gradient(180deg, rgba(148,163,184,.06), rgba(148,163,184,.02));
+}
+.grid-chip .h{font-size:clamp(18px,2.4vw,26px)}
+.grid-chip .h.strong{font-weight:800}
+
+/* variasi warna (loop 6 warna) */
+.chip-0{ background:linear-gradient(180deg,var(--chip-a1), transparent); border-color:var(--chip-b1) }
+.chip-1{ background:linear-gradient(180deg,var(--chip-a2), transparent); border-color:var(--chip-b2) }
+.chip-2{ background:linear-gradient(180deg,var(--chip-a3), transparent); border-color:var(--chip-b3) }
+.chip-3{ background:linear-gradient(180deg,var(--chip-a4), transparent); border-color:var(--chip-b4) }
+.chip-4{ background:linear-gradient(180deg,var(--chip-a5), transparent); border-color:var(--chip-b5) }
+.chip-5{ background:linear-gradient(180deg,var(--chip-a6), transparent); border-color:var(--chip-b6) }
+.chip-muted{ background:linear-gradient(180deg, rgba(148,163,184,.08), rgba(148,163,184,.02)); }
+
+/* ===== Skeleton shimmer ===== */
+.skeleton{
+  position:relative; overflow:hidden; background:linear-gradient(90deg, rgba(148,163,184,.15), rgba(148,163,184,.1));
+}
+.skeleton::after{
+  content:""; position:absolute; inset:0; transform:translateX(-100%);
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent);
+  animation:skeleton 1.2s infinite;
+}
+@keyframes skeleton{ to{ transform:translateX(100%); } }
+.skeleton-text{ height:14px; border-radius:6px }
+
+/* 4K / TV */
 @media (min-width: 1800px){
   :root{ --container: min(94vw, 1800px); }
   .table th,.table td{padding:.8rem}
+  .grid-3{grid-template-columns:repeat(3,1fr)}
 }
+
+/* Tablet / Mobile */
 @media (max-width: 980px){
   .grid{grid-template-columns:1fr}
   .grid-3{grid-template-columns:1fr}
-  .grid-chips{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem}
+  .grid-chips{grid-template-columns:repeat(2,1fr)}
   .nav-right{gap:.4rem}
 }
+
+/* Print */
 @media print{
   nav,.btn,.input,.row-between > .row,.corner-brand{display:none !important}
   body{background:#fff}
 }
 
-/* =========================================================
-   NAV: warna ikon + GRADIENT + underline slide-in + 3D tilt
-   ========================================================= */
-.nav .btn.ghost{
-  position:relative;
-  display:inline-flex; align-items:center; gap:.45rem;
-  border:1px solid var(--border); background:transparent; color:var(--ink);
-  /* 3D tilt + animasi halus */
-  transform: perspective(600px) rotateX(var(--tiltX)) rotateY(var(--tiltY));
-  transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease, transform 80ms ease;
-  will-change: transform, box-shadow, background;
-}
-.nav .btn.ghost i{
-  opacity:.98;
-  filter: saturate(1.8) brightness(1.05);
-  transition: filter 120ms ease, transform 120ms ease;
-  will-change: transform, filter;
-}
-
-#btnToDash i{ color: var(--dash) }
-#btnToSales i{ color: var(--sales) }
-#btnToPlan i{ color: var(--plan) }
-#btnToShip i{ color: var(--ship) }
-#btnToInvPage i{ color: var(--inv) }
-#btnToFinPage i{ color: var(--fin) }
-#btnToInvoice i{ color: var(--invoice) }
-#btnToCharts i{ color: var(--charts) }
-
-/* Hover gradient + pop icon */
-#btnToDash:hover{ border-color: color-mix(in oklab, var(--dash) 55%, var(--border)); background: linear-gradient(135deg, color-mix(in oklab, var(--dash) 10%, transparent), color-mix(in oklab, var(--dash) 28%, transparent)); }
-#btnToSales:hover{ border-color: color-mix(in oklab, var(--sales) 55%, var(--border)); background: linear-gradient(135deg, color-mix(in oklab, var(--sales) 10%, transparent), color-mix(in oklab, var(--sales) 28%, transparent)); }
-#btnToPlan:hover{ border-color: color-mix(in oklab, var(--plan) 55%, var(--border)); background: linear-gradient(135deg, color-mix(in oklab, var(--plan) 10%, transparent), color-mix(in oklab, var(--plan) 28%, transparent)); }
-#btnToShip:hover{ border-color: color-mix(in oklab, var(--ship) 55%, var(--border)); background: linear-gradient(135deg, color-mix(in oklab, var(--ship) 10%, transparent), color-mix(in oklab, var(--ship) 28%, transparent)); }
-#btnToInvPage:hover{ border-color: color-mix(in oklab, var(--inv) 55%, var(--border)); background: linear-gradient(135deg, color-mix(in oklab, var(--inv) 10%, transparent), color-mix(in oklab, var(--inv) 28%, transparent)); }
-#btnToFinPage:hover{ border-color: color-mix(in oklab, var(--fin) 55%, var(--border)); background: linear-gradient(135deg, color-mix(in oklab, var(--fin) 10%, transparent), color-mix(in oklab, var(--fin) 28%, transparent)); }
-#btnToInvoice:hover{ border-color: color-mix(in oklab, var(--invoice) 55%, var(--border)); background: linear-gradient(135deg, color-mix(in oklab, var(--invoice) 10%, transparent), color-mix(in oklab, var(--invoice) 28%, transparent)); }
-#btnToCharts:hover{ border-color: color-mix(in oklab, var(--charts) 55%, var(--border)); background: linear-gradient(135deg, color-mix(in oklab, var(--charts) 10%, transparent), color-mix(in oklab, var(--charts) 28%, transparent)); }
-.nav .btn.ghost:hover i{ transform: translateY(-1px) scale(1.06); filter: saturate(2) brightness(1.08) }
-
-/* Underline slide-in */
-.nav .btn.ghost::after{
-  content:""; position:absolute; left:10px; right:10px; bottom:-6px; height:3px; border-radius:3px;
-  background: currentColor; opacity:.0;
-  transform: scaleX(0); transform-origin:left;
-  transition: transform 160ms ease, opacity 120ms ease;
-}
-.nav .btn.ghost:hover::after{ opacity:.45; transform: scaleX(1); }
-
-/* Active state (gradient + underline penuh) */
-.nav .btn.ghost.active{
-  color: var(--ink); font-weight:800; box-shadow: 0 6px 18px rgba(0,0,0,.10);
-}
-.nav .btn.ghost.active::after{ opacity:.75; transform: scaleX(1); }
-
-/* active color mapping */
-.nav .btn.ghost.active#btnToDash{ color: var(--dash); border-color: var(--dash); background: linear-gradient(135deg, color-mix(in oklab, var(--dash) 14%, transparent), color-mix(in oklab, var(--dash) 42%, transparent)); }
-.nav .btn.ghost.active#btnToSales{ color: var(--sales); border-color: var(--sales); background: linear-gradient(135deg, color-mix(in oklab, var(--sales) 14%, transparent), color-mix(in oklab, var(--sales) 42%, transparent)); }
-.nav .btn.ghost.active#btnToPlan{ color: var(--plan); border-color: var(--plan); background: linear-gradient(135deg, color-mix(in oklab, var(--plan) 14%, transparent), color-mix(in oklab, var(--plan) 42%, transparent)); }
-.nav .btn.ghost.active#btnToShip{ color: var(--ship); border-color: var(--ship); background: linear-gradient(135deg, color-mix(in oklab, var(--ship) 14%, transparent), color-mix(in oklab, var(--ship) 42%, transparent)); }
-.nav .btn.ghost.active#btnToInvPage{ color: var(--inv); border-color: var(--inv); background: linear-gradient(135deg, color-mix(in oklab, var(--inv) 14%, transparent), color-mix(in oklab, var(--inv) 42%, transparent)); }
-.nav .btn.ghost.active#btnToFinPage{ color: var(--fin); border-color: var(--fin); background: linear-gradient(135deg, color-mix(in oklab, var(--fin) 14%, transparent), color-mix(in oklab, var(--fin) 42%, transparent)); }
-.nav .btn.ghost.active#btnToInvoice{ color: var(--invoice); border-color: var(--invoice); background: linear-gradient(135deg, color-mix(in oklab, var(--invoice) 14%, transparent), color-mix(in oklab, var(--invoice) 42%, transparent)); }
-.nav .btn.ghost.active#btnToCharts{ color: var(--charts); border-color: var(--charts); background: linear-gradient(135deg, color-mix(in oklab, var(--charts) 14%, transparent), color-mix(in oklab, var(--charts) 42%, transparent)); }
-.nav .btn.ghost.active i{ color: currentColor; filter: saturate(2.2) brightness(1.12) }
-
-/* Focus ring */
-.nav .btn.ghost:focus-visible{
-  outline: 3px solid color-mix(in oklab, currentColor 55%, #ffffff);
-  outline-offset: 2px; border-color: currentColor;
-}
-
-/* PRIORITY BOOST (Ship & Invoice) — LETAK PALING BAWAH FILE INI */
-#btnToShip i, #btnToInvoice i{
-  filter: saturate(2.35) brightness(1.16) drop-shadow(0 1px 0 rgba(0,0,0,.06));
-}
-#btnToShip:hover, #btnToInvoice:hover{ transform: perspective(600px) rotateX(calc(var(--tiltX) + 1deg)) rotateY(calc(var(--tiltY) - 1deg)); }
-#btnToShip.active{
-  box-shadow: 0 10px 26px rgba(245, 158, 11, .18), 0 2px 8px rgba(0,0,0,.08);
-}
-#btnToInvoice.active{
-  box-shadow: 0 10px 26px rgba(99, 102, 241, .18), 0 2px 8px rgba(0,0,0,.08);
-}
+/* Priority menus boost (optional – sudah diminta sebelumnya) */
+#btnToShip i, #btnToInvoice i{ filter: saturate(2.2) brightness(1.14) }
+#btnToShip:hover, #btnToInvoice:hover{ transform: translateY(-1px) }
