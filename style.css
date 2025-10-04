@@ -3,6 +3,16 @@
   --primary:#2563eb; --primary-hover:#1d4ed8; --radius:14px; --shadow:0 2px 6px rgba(0,0,0,0.05);
   --fs-base: clamp(12px, 0.9vw, 16px); --fs-s: clamp(10px, 0.75vw, 13px);
   --container: min(96vw, 1600px);
+
+  /* ===== Menu colors (per page) ===== */
+  --dash:#0ea5e9;      /* Sky */
+  --sales:#22c55e;     /* Green */
+  --plan:#a855f7;      /* Purple */
+  --ship:#f59e0b;      /* Amber */
+  --inv:#ef4444;       /* Red */
+  --fin:#10b981;       /* Emerald */
+  --invoice:#6366f1;   /* Indigo */
+  --charts:#06b6d4;    /* Cyan */
 }
 /* Dark mode */
 @media (prefers-color-scheme: dark){
@@ -24,7 +34,10 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:var(--fs
 .grow{flex:1}
 
 /* Nav */
-.nav{position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:.5rem .8rem;border-bottom:1px solid var(--border);background:var(--card);box-shadow:var(--shadow)}
+.nav{
+  position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;align-items:center;
+  padding:.5rem .8rem;border-bottom:1px solid var(--border);background:var(--card);box-shadow:var(--shadow)
+}
 .logo{height:28px}
 .brand{margin-left:.5rem;font-weight:700;font-size:clamp(14px,1.1vw,18px)}
 .nav-right{display:flex;gap:.35rem;align-items:center;flex-wrap:wrap}
@@ -96,13 +109,13 @@ input, select, textarea{width:100%;padding:.7rem;border-radius:12px;border:1px s
 .prc-out { border-color:#e2e8f0; background:#f8fafc; color:#334155 }
 .prc-inspect { border-color:#bae6fd; background:#f0f9ff; color:#0b4666 }
 
-/* Sub-row pada kolom kiri (注番 + 得意先 sejajar) */
+/* Sub-row (注番+得意先) */
 .row-main{display:flex;flex-direction:column;gap:.18rem}
 .row-sub{display:flex;gap:.6rem;flex-wrap:wrap}
 .row-sub .kv{display:inline-flex;gap:.25rem;align-items:center;font-size:12px;color:var(--muted)}
 .row-sub .kv b{color:var(--ink);font-weight:600}
 
-/* 操作: 2-baris sejajar & responsif */
+/* 操作: 2-baris responsif */
 .actions-2col{display:grid;grid-template-columns:repeat(2,minmax(76px,1fr));gap:.35rem}
 @media(min-width:1080px){ .actions-2col{grid-template-columns:repeat(2,90px);} }
 @media(max-width:520px) { .actions-2col{grid-template-columns:repeat(2,1fr);} }
@@ -130,7 +143,7 @@ video#scanVideo{width:100%;max-height:48vh;border-radius:12px;background:#000}
 @media (max-width: 980px){
   .grid{grid-template-columns:1fr}
   .grid-3{grid-template-columns:1fr}
-  .grid-chips{grid-template-columns:repeat(2,1fr)}
+  .grid-chips{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem}
   .nav-right{gap:.4rem}
 }
 
@@ -140,3 +153,91 @@ video#scanVideo{width:100%;max-height:48vh;border-radius:12px;background:#000}
   body{background:#fff}
 }
 
+/* =========================================================
+   LEVEL MAX: Menu warna + ikon ber-saturasi + glow + underline
+   ========================================================= */
+
+/* dasar tombol nav */
+.nav .btn.ghost{
+  position:relative;
+  display:inline-flex; align-items:center; gap:.45rem;
+  border:1px solid var(--border); background:transparent; color:var(--ink);
+  transition: border-color .2s ease, background .2s ease, box-shadow .2s ease, transform .08s ease;
+}
+
+/* ikon di tombol nav: saturasi & pop */
+.nav .btn.ghost i{
+  opacity:.98;
+  filter: saturate(1.8) brightness(1.05);
+  transition: filter .2s ease, transform .12s ease;
+}
+
+/* warna khusus ikon per tombol */
+#btnToDash i{ color: var(--dash) }
+#btnToSales i{ color: var(--sales) }
+#btnToPlan i{ color: var(--plan) }
+#btnToShip i{ color: var(--ship) }
+#btnToInvPage i{ color: var(--inv) }
+#btnToFinPage i{ color: var(--fin) }
+#btnToInvoice i{ color: var(--invoice) }
+#btnToCharts i{ color: var(--charts) }
+
+/* hover: tint lembut + border berwarna + ikon sedikit mengembang */
+#btnToDash:hover{ border-color: color-mix(in oklab, var(--dash) 55%, var(--border)); background: color-mix(in oklab, var(--dash) 12%, transparent) }
+#btnToSales:hover{ border-color: color-mix(in oklab, var(--sales) 55%, var(--border)); background: color-mix(in oklab, var(--sales) 12%, transparent) }
+#btnToPlan:hover{ border-color: color-mix(in oklab, var(--plan) 55%, var(--border)); background: color-mix(in oklab, var(--plan) 12%, transparent) }
+#btnToShip:hover{ border-color: color-mix(in oklab, var(--ship) 55%, var(--border)); background: color-mix(in oklab, var(--ship) 12%, transparent) }
+#btnToInvPage:hover{ border-color: color-mix(in oklab, var(--inv) 55%, var(--border)); background: color-mix(in oklab, var(--inv) 12%, transparent) }
+#btnToFinPage:hover{ border-color: color-mix(in oklab, var(--fin) 55%, var(--border)); background: color-mix(in oklab, var(--fin) 12%, transparent) }
+#btnToInvoice:hover{ border-color: color-mix(in oklab, var(--invoice) 55%, var(--border)); background: color-mix(in oklab, var(--invoice) 12%, transparent) }
+#btnToCharts:hover{ border-color: color-mix(in oklab, var(--charts) 55%, var(--border)); background: color-mix(in oklab, var(--charts) 12%, transparent) }
+
+.nav .btn.ghost:hover i{ transform: translateY(-1px) scale(1.06); filter: saturate(2) brightness(1.08) }
+
+/* state aktif di nav: bold + glow + underline indikator */
+.nav .btn.ghost.active{
+  color: var(--ink);
+  font-weight: 800;
+  box-shadow: 0 4px 14px rgba(0,0,0,.08);
+  transform: translateY(-1px);
+}
+
+/* garis bawah aktif (underline) sesuai warna tombol */
+.nav .btn.ghost.active::after{
+  content:"";
+  position:absolute; left:10px; right:10px; bottom:-6px; height:3px; border-radius:3px;
+  background: currentColor; opacity:.7;
+}
+
+/* aktif: set currentColor per tombol agar underline ikut */
+.nav .btn.ghost.active#btnToDash{ color: var(--dash); border-color: var(--dash); background: color-mix(in oklab, var(--dash) 16%, transparent) }
+.nav .btn.ghost.active#btnToSales{ color: var(--sales); border-color: var(--sales); background: color-mix(in oklab, var(--sales) 16%, transparent) }
+.nav .btn.ghost.active#btnToPlan{ color: var(--plan); border-color: var(--plan); background: color-mix(in oklab, var(--plan) 16%, transparent) }
+.nav .btn.ghost.active#btnToShip{ color: var(--ship); border-color: var(--ship); background: color-mix(in oklab, var(--ship) 16%, transparent) }
+.nav .btn.ghost.active#btnToInvPage{ color: var(--inv); border-color: var(--inv); background: color-mix(in oklab, var(--inv) 16%, transparent) }
+.nav .btn.ghost.active#btnToFinPage{ color: var(--fin); border-color: var(--fin); background: color-mix(in oklab, var(--fin) 16%, transparent) }
+.nav .btn.ghost.active#btnToInvoice{ color: var(--invoice); border-color: var(--invoice); background: color-mix(in oklab, var(--invoice) 16%, transparent) }
+.nav .btn.ghost.active#btnToCharts{ color: var(--charts); border-color: var(--charts); background: color-mix(in oklab, var(--charts) 16%, transparent) }
+
+/* ikon saat active mengikuti currentColor */
+.nav .btn.ghost.active i{ color: currentColor; filter: saturate(2.2) brightness(1.12) }
+
+/* Focus ring (keyboard) — aksesibilitas */
+.nav .btn.ghost:focus-visible{
+  outline: 3px solid color-mix(in oklab, currentColor 55%, #ffffff);
+  outline-offset: 2px;
+  border-color: currentColor;
+}
+
+/* Dark mode tweak: naikkan intensitas tint & shadow */
+@media (prefers-color-scheme: dark){
+  .nav .btn.ghost.active{ box-shadow: 0 6px 20px rgba(0,0,0,.35) }
+  #btnToDash:hover{ background: color-mix(in oklab, var(--dash) 22%, transparent) }
+  #btnToSales:hover{ background: color-mix(in oklab, var(--sales) 22%, transparent) }
+  #btnToPlan:hover{ background: color-mix(in oklab, var(--plan) 22%, transparent) }
+  #btnToShip:hover{ background: color-mix(in oklab, var(--ship) 22%, transparent) }
+  #btnToInvPage:hover{ background: color-mix(in oklab, var(--inv) 22%, transparent) }
+  #btnToFinPage:hover{ background: color-mix(in oklab, var(--fin) 22%, transparent) }
+  #btnToInvoice:hover{ background: color-mix(in oklab, var(--invoice) 22%, transparent) }
+  #btnToCharts:hover{ background: color-mix(in oklab, var(--charts) 22%, transparent) }
+}
