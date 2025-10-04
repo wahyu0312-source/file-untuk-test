@@ -4,23 +4,31 @@
   --fs-base: clamp(12px, 0.9vw, 16px); --fs-s: clamp(10px, 0.75vw, 13px);
   --container: min(96vw, 1600px);
 
-  /* chip palettes (工程内滞留) */
-  --chip-a1:#eef2ff; --chip-a2:#e0f2fe; --chip-a3:#ecfeff;
-  --chip-a4:#f0fdf4; --chip-a5:#fff7ed; --chip-a6:#fef2f2;
-  --chip-b1:#c7d2fe; --chip-b2:#bae6fd; --chip-b3:#a5f3fc;
-  --chip-b4:#bbf7d0; --chip-b5:#fed7aa; --chip-b6:#fecaca;
+  /* Nav gradients */
+  --g-dash: linear-gradient(135deg,#dbeafe,#bfdbfe);
+  --g-sales: linear-gradient(135deg,#fce7f3,#fbcfe8);
+  --g-plan: linear-gradient(135deg,#e9d5ff,#ddd6fe);
+  --g-ship: linear-gradient(135deg,#d1fae5,#a7f3d0);
+  --g-inv: linear-gradient(135deg,#e2e8f0,#cbd5e1);
+  --g-fin: linear-gradient(135deg,#ffe4e6,#fecdd3);
+  --g-invoice: linear-gradient(135deg,#fde68a,#fcd34d);
+  --g-charts: linear-gradient(135deg,#c7d2fe,#93c5fd);
 }
+
 /* Dark mode */
 @media (prefers-color-scheme: dark){
   :root{
     --bg:#0f172a; --card:#111827; --border:#263245; --ink:#e5e7eb; --muted:#94a3b8;
     --primary:#3b82f6; --primary-hover:#2563eb; --shadow:0 2px 10px rgba(0,0,0,.35);
 
-    /* tweak chips agar kontras di dark */
-    --chip-a1:#1e2750; --chip-a2:#103044; --chip-a3:#0c3c3e;
-    --chip-a4:#123224; --chip-a5:#3a2a12; --chip-a6:#3a1414;
-    --chip-b1:#4a5bcd; --chip-b2:#3b9ed4; --chip-b3:#31c2c2;
-    --chip-b4:#36c072; --chip-b5:#d98c3f; --chip-b6:#cf5f5f;
+    --g-dash: linear-gradient(135deg,#0b1733,#122142);
+    --g-sales: linear-gradient(135deg,#2b1430,#3a1a40);
+    --g-plan: linear-gradient(135deg,#211a3a,#2f2551);
+    --g-ship: linear-gradient(135deg,#0f2f24,#124335);
+    --g-inv: linear-gradient(135deg,#1e293b,#0f172a);
+    --g-fin: linear-gradient(135deg,#3a1417,#4e1b1f);
+    --g-invoice: linear-gradient(135deg,#3b2a0c,#513b12);
+    --g-charts: linear-gradient(135deg,#152246,#1e3264);
   }
 }
 
@@ -36,17 +44,19 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:var(--fs
 .grow{flex:1}
 
 /* Nav */
-.nav{position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;align-items:center;padding:.5rem .8rem;border-bottom:1px solid var(--border);background:var(--card);box-shadow:var(--shadow)}
-.logo{height:28px}
-.brand{margin-left:.5rem;font-weight:700;font-size:clamp(14px,1.1vw,18px)}
-.nav-right{display:flex;gap:.35rem;align-items:center;flex-wrap:wrap}
-.nav-right .btn{--tiltX:0deg; --tiltY:0deg; transform: perspective(800px) rotateX(var(--tiltX)) rotateY(var(--tiltY)); transition: transform .12s ease, background .12s ease, color .12s ease, box-shadow .12s ease;}
-.nav-right .btn.active{position:relative}
-.nav-right .btn.active::after{
-  content:""; position:absolute; left:.8rem; right:.8rem; bottom:-3px; height:2px; background:linear-gradient(90deg, rgba(37,99,235,.0), rgba(37,99,235,.9), rgba(37,99,235,.0));
-  transform:scaleX(0); transform-origin:center; animation:underline-in .24s forwards ease;
+.nav{
+  position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;align-items:center;
+  padding:.5rem .8rem;border-bottom:1px solid var(--border);background:var(--card);box-shadow:var(--shadow)
 }
-@keyframes underline-in{to{transform:scaleX(1)}}
+.logo{height:28px}
+.brand{margin-left:.5rem;font-weight:700;font-size:clamp(14px,1.1vw,18px); position:relative}
+.brand::after{
+  content:""; position:absolute; left:0; bottom:-4px; height:2px; width:0;
+  background:linear-gradient(90deg,rgba(59,130,246,.0),rgba(59,130,246,.8),rgba(59,130,246,.0));
+  transition:width .18s ease;
+}
+.nav:hover .brand::after{ width:100% }
+.nav-right{display:flex;gap:.35rem;align-items:center;flex-wrap:wrap}
 
 /* Corner brand */
 .corner-brand{
@@ -79,11 +89,41 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:var(--fs
 /* Inputs & buttons */
 input, select, textarea{width:100%;padding:.7rem;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--ink)}
 .input{width:210px;max-width:48vw}
-.btn{padding:.55rem .9rem;border-radius:12px;border:1px solid transparent;background:var(--primary);color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;font-size:13px;transition: transform .12s ease, filter .12s ease}
-.btn:hover{background:var(--primary-hover)}
+.btn{
+  padding:.55rem .9rem;border-radius:12px;border:1px solid transparent;background:var(--primary);color:#fff;cursor:pointer;
+  display:inline-flex;align-items:center;gap:.4rem;font-size:13px; transition:transform .12s ease, box-shadow .12s ease, background .12s ease
+}
+.btn:hover{background:var(--primary-hover); transform: translateY(-1px); box-shadow:0 6px 14px rgba(0,0,0,.08)}
 .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--ink)}
 .btn.ghost:hover{background:rgba(148,163,184,.12)}
-.btn.s{padding:.35rem .55rem;font-size:11px;border-radius:10px}
+
+/* --- NAV PILL COLORS (ikon + gradient) --- */
+.nav .btn.ghost{ border-color:transparent; color:#0f172a }
+@media (prefers-color-scheme: dark){ .nav .btn.ghost{ color:#e5e7eb } }
+
+#btnToDash{
+  background:var(--g-dash); color:#0b285a; border:1px solid rgba(59,130,246,.15)
+}
+#btnToSales{ background:var(--g-sales); color:#5b1139; border:1px solid rgba(236,72,153,.18) }
+#btnToPlan{ background:var(--g-plan); color:#271155; border:1px solid rgba(168,85,247,.18) }
+#btnToShip{ background:var(--g-ship); color:#0b3b2e; border:1px solid rgba(16,185,129,.22) }
+#btnToInvPage{ background:var(--g-inv); color:#0f1f36; border:1px solid rgba(100,116,139,.22) }
+#btnToFinPage{ background:var(--g-fin); color:#5d141a; border:1px solid rgba(244,63,94,.18) }
+#btnToInvoice{ background:var(--g-invoice); color:#4b3410; border:1px solid rgba(245,158,11,.22) }
+#btnToCharts{ background:var(--g-charts); color:#102a68; border:1px solid rgba(59,130,246,.18) }
+
+#btnToDash i, #btnToSales i, #btnToPlan i, #btnToShip i, #btnToInvPage i, #btnToFinPage i, #btnToInvoice i, #btnToCharts i{
+  filter: drop-shadow(0 1px 0 rgba(255,255,255,.65));
+}
+@media (prefers-color-scheme: dark){
+  #btnToDash i, #btnToSales i, #btnToPlan i, #btnToShip i, #btnToInvPage i, #btnToFinPage i, #btnToInvoice i, #btnToCharts i{
+    filter: drop-shadow(0 1px 0 rgba(0,0,0,.45));
+  }
+}
+
+/* Prioritas POP untuk 出荷予定 & 請求書 */
+#btnToShip i, #btnToInvoice i{ filter: saturate(2.2) brightness(1.14) }
+#btnToShip:hover, #btnToInvoice:hover{ transform: translateY(-1px) scale(1.02) }
 
 /* Table */
 .table-wrap{overflow:auto;max-height:60vh;border:1px solid var(--border);border-radius:12px;background:var(--card)}
@@ -91,7 +131,7 @@ input, select, textarea{width:100%;padding:.7rem;border-radius:12px;border:1px s
 .table th,.table td{padding:.6rem;border-bottom:1px solid rgba(148,163,184,.25);vertical-align:middle}
 
 /* ===== Badges: 状況 & 工程 ===== */
-.badge{display:inline-flex;align-items:center;gap:.35rem;padding:.2rem .55rem;border-radius:999px;border:1px solid var(--border);font-size:12px;line-height:1;background:rgba(148,163,184,.08)}
+.badge{display:inline-flex;align-items:center;gap:.35rem;padding:.2rem .55rem;border-radius:999px;border:1px solid var(--border);font-size:12px;line-height:1;background:rgba(148,163,184,.08); font-weight:600}
 .badge .dot{width:8px;height:8px;border-radius:999px;display:inline-block}
 
 /* 状況 (Status) */
@@ -121,13 +161,13 @@ input, select, textarea{width:100%;padding:.7rem;border-radius:12px;border:1px s
 .row-sub .kv{display:inline-flex;gap:.25rem;align-items:center;font-size:12px;color:var(--muted)}
 .row-sub .kv b{color:var(--ink);font-weight:600}
 
-/* Operasi: grid 2 kolom */
+/* 操作: 2-baris sejajar & responsif */
 .actions-2col{display:grid;grid-template-columns:repeat(2,minmax(76px,1fr));gap:.35rem}
 @media(min-width:1080px){ .actions-2col{grid-template-columns:repeat(2,90px);} }
 @media(max-width:520px) { .actions-2col{grid-template-columns:repeat(2,1fr);} }
 
 .table td.col-status,.table td.col-proc{white-space:nowrap}
-.table td.col-proc .badge{font-weight:600}
+.table td.col-proc .badge{font-weight:700}
 
 /* Dialogs & video */
 .paper{width:min(860px,96vw);border:0;padding:0;background:var(--card);color:var(--ink);border-radius:10px;box-shadow:var(--shadow)}
@@ -139,41 +179,43 @@ video#scanVideo{width:100%;max-height:48vh;border-radius:12px;background:#000}
 /* Stats */
 .stat-num{font-size:clamp(26px,3.5vw,42px);font-weight:800}
 
-/* ===== 工程内滞留（現在位置） chip styling ===== */
-.grid-chip{
-  border:1px solid var(--border);border-radius:12px;padding:.6rem .7rem;
-  display:flex; align-items:center; justify-content:space-between; gap:.5rem;
-  background:linear-gradient(180deg, rgba(148,163,184,.06), rgba(148,163,184,.02));
+/* ====== 工程内滞留（現在位置） – warna elegan + tebal ====== */
+/* Urutan sesuai PROCESSES array di app.js */
+#gridProc .grid-chip{
+  border:1px solid var(--border); border-radius:12px; padding:.55rem .6rem;
+  display:flex; align-items:center; justify-content:space-between;
+  background:linear-gradient(180deg, rgba(255,255,255,.85), rgba(246,248,252,.85));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
+  transition: transform .12s ease, box-shadow .12s ease;
 }
-.grid-chip .h{font-size:clamp(18px,2.4vw,26px)}
-.grid-chip .h.strong{font-weight:800}
+#gridProc .grid-chip:hover{ transform: translateY(-1px); box-shadow:0 6px 16px rgba(0,0,0,.06) }
+#gridProc .grid-chip .h{ font-weight:800 }
 
-/* variasi warna (loop 6 warna) */
-.chip-0{ background:linear-gradient(180deg,var(--chip-a1), transparent); border-color:var(--chip-b1) }
-.chip-1{ background:linear-gradient(180deg,var(--chip-a2), transparent); border-color:var(--chip-b2) }
-.chip-2{ background:linear-gradient(180deg,var(--chip-a3), transparent); border-color:var(--chip-b3) }
-.chip-3{ background:linear-gradient(180deg,var(--chip-a4), transparent); border-color:var(--chip-b4) }
-.chip-4{ background:linear-gradient(180deg,var(--chip-a5), transparent); border-color:var(--chip-b5) }
-.chip-5{ background:linear-gradient(180deg,var(--chip-a6), transparent); border-color:var(--chip-b6) }
-.chip-muted{ background:linear-gradient(180deg, rgba(148,163,184,.08), rgba(148,163,184,.02)); }
+/* tint per urutan */
+#gridProc .grid-chip:nth-child(1){ background:linear-gradient(135deg,#eef2ff,#e0e7ff) }     /* レーザ加工 */
+#gridProc .grid-chip:nth-child(2){ background:linear-gradient(135deg,#ecfeff,#cffafe) }     /* 曲げ加工 */
+#gridProc .grid-chip:nth-child(3){ background:linear-gradient(135deg,#f0fdf4,#dcfce7) }     /* 外枠組立 */
+#gridProc .grid-chip:nth-child(4){ background:linear-gradient(135deg,#fff7ed,#ffedd5) }     /* ｼｬｯﾀｰ組立 */
+#gridProc .grid-chip:nth-child(5){ background:linear-gradient(135deg,#fef2f2,#fee2e2) }     /* ｼｬｯﾀｰ溶接 */
+#gridProc .grid-chip:nth-child(6){ background:linear-gradient(135deg,#faf5ff,#f3e8ff) }     /* ｺｰｷﾝｸﾞ */
+#gridProc .grid-chip:nth-child(7){ background:linear-gradient(135deg,#fff7e6,#ffe8bb) }     /* 外枠塗装 */
+#gridProc .grid-chip:nth-child(8){ background:linear-gradient(135deg,#e6fffa,#ccfbf1) }     /* 組立（中） */
+#gridProc .grid-chip:nth-child(9){ background:linear-gradient(135deg,#e0f2fe,#bae6fd) }     /* 組立（済） */
+#gridProc .grid-chip:nth-child(10){ background:linear-gradient(135deg,#f8fafc,#e2e8f0) }    /* 外注 */
+#gridProc .grid-chip:nth-child(11){ background:linear-gradient(135deg,#f0f9ff,#e0f2fe) }    /* 検査工程 */
 
-/* ===== Skeleton shimmer ===== */
-.skeleton{
-  position:relative; overflow:hidden; background:linear-gradient(90deg, rgba(148,163,184,.15), rgba(148,163,184,.1));
+/* Skeleton shimmer */
+.shimmer{
+  background: linear-gradient(90deg, rgba(148,163,184,.15), rgba(148,163,184,.25), rgba(148,163,184,.15));
+  background-size: 240% 100%;
+  animation: shimmer 1.1s infinite linear;
 }
-.skeleton::after{
-  content:""; position:absolute; inset:0; transform:translateX(-100%);
-  background:linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent);
-  animation:skeleton 1.2s infinite;
-}
-@keyframes skeleton{ to{ transform:translateX(100%); } }
-.skeleton-text{ height:14px; border-radius:6px }
+@keyframes shimmer{ 0%{background-position:-120% 0} 100%{background-position:120% 0} }
 
 /* 4K / TV */
 @media (min-width: 1800px){
   :root{ --container: min(94vw, 1800px); }
   .table th,.table td{padding:.8rem}
-  .grid-3{grid-template-columns:repeat(3,1fr)}
 }
 
 /* Tablet / Mobile */
@@ -189,7 +231,3 @@ video#scanVideo{width:100%;max-height:48vh;border-radius:12px;background:#000}
   nav,.btn,.input,.row-between > .row,.corner-brand{display:none !important}
   body{background:#fff}
 }
-
-/* Priority menus boost (optional – sudah diminta sebelumnya) */
-#btnToShip i, #btnToInvoice i{ filter: saturate(2.2) brightness(1.14) }
-#btnToShip:hover, #btnToInvoice:hover{ transform: translateY(-1px) }
