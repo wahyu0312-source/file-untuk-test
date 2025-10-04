@@ -13,6 +13,10 @@
   --fin:#10b981;       /* Emerald */
   --invoice:#6366f1;   /* Indigo */
   --charts:#06b6d4;    /* Cyan */
+
+  /* gradasi (lebih gelap utk sisi kiri) */
+  --grad-dark: 14%;
+  --grad-light: 48%;
 }
 /* Dark mode */
 @media (prefers-color-scheme: dark){
@@ -154,7 +158,7 @@ video#scanVideo{width:100%;max-height:48vh;border-radius:12px;background:#000}
 }
 
 /* =========================================================
-   LEVEL MAX: Menu warna + ikon ber-saturasi + glow + underline
+   LEVEL MAX NAV: warna ikon + gradient + animasi 120ms
    ========================================================= */
 
 /* dasar tombol nav */
@@ -162,14 +166,16 @@ video#scanVideo{width:100%;max-height:48vh;border-radius:12px;background:#000}
   position:relative;
   display:inline-flex; align-items:center; gap:.45rem;
   border:1px solid var(--border); background:transparent; color:var(--ink);
-  transition: border-color .2s ease, background .2s ease, box-shadow .2s ease, transform .08s ease;
+  transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease, transform 80ms ease;
+  will-change: transform, box-shadow, background;
 }
 
 /* ikon di tombol nav: saturasi & pop */
 .nav .btn.ghost i{
   opacity:.98;
   filter: saturate(1.8) brightness(1.05);
-  transition: filter .2s ease, transform .12s ease;
+  transition: filter 120ms ease, transform 120ms ease;
+  will-change: transform, filter;
 }
 
 /* warna khusus ikon per tombol */
@@ -182,42 +188,77 @@ video#scanVideo{width:100%;max-height:48vh;border-radius:12px;background:#000}
 #btnToInvoice i{ color: var(--invoice) }
 #btnToCharts i{ color: var(--charts) }
 
-/* hover: tint lembut + border berwarna + ikon sedikit mengembang */
-#btnToDash:hover{ border-color: color-mix(in oklab, var(--dash) 55%, var(--border)); background: color-mix(in oklab, var(--dash) 12%, transparent) }
-#btnToSales:hover{ border-color: color-mix(in oklab, var(--sales) 55%, var(--border)); background: color-mix(in oklab, var(--sales) 12%, transparent) }
-#btnToPlan:hover{ border-color: color-mix(in oklab, var(--plan) 55%, var(--border)); background: color-mix(in oklab, var(--plan) 12%, transparent) }
-#btnToShip:hover{ border-color: color-mix(in oklab, var(--ship) 55%, var(--border)); background: color-mix(in oklab, var(--ship) 12%, transparent) }
-#btnToInvPage:hover{ border-color: color-mix(in oklab, var(--inv) 55%, var(--border)); background: color-mix(in oklab, var(--inv) 12%, transparent) }
-#btnToFinPage:hover{ border-color: color-mix(in oklab, var(--fin) 55%, var(--border)); background: color-mix(in oklab, var(--fin) 12%, transparent) }
-#btnToInvoice:hover{ border-color: color-mix(in oklab, var(--invoice) 55%, var(--border)); background: color-mix(in oklab, var(--invoice) 12%, transparent) }
-#btnToCharts:hover{ border-color: color-mix(in oklab, var(--charts) 55%, var(--border)); background: color-mix(in oklab, var(--charts) 12%, transparent) }
+/* Helper: gradient function via color-mix fallback */
+@supports (background: color-mix(in oklab, red 10%, white)){
+  .tint-sky   { background: linear-gradient(135deg,
+                     color-mix(in oklab, var(--dash) var(--grad-dark), transparent) 0%,
+                     color-mix(in oklab, var(--dash) var(--grad-light), transparent) 100% ); }
+  .tint-green { background: linear-gradient(135deg,
+                     color-mix(in oklab, var(--sales) var(--grad-dark), transparent) 0%,
+                     color-mix(in oklab, var(--sales) var(--grad-light), transparent) 100% ); }
+  .tint-purple{ background: linear-gradient(135deg,
+                     color-mix(in oklab, var(--plan) var(--grad-dark), transparent) 0%,
+                     color-mix(in oklab, var(--plan) var(--grad-light), transparent) 100% ); }
+  .tint-amber { background: linear-gradient(135deg,
+                     color-mix(in oklab, var(--ship) var(--grad-dark), transparent) 0%,
+                     color-mix(in oklab, var(--ship) var(--grad-light), transparent) 100% ); }
+  .tint-red   { background: linear-gradient(135deg,
+                     color-mix(in oklab, var(--inv) var(--grad-dark), transparent) 0%,
+                     color-mix(in oklab, var(--inv) var(--grad-light), transparent) 100% ); }
+  .tint-emerald{background: linear-gradient(135deg,
+                     color-mix(in oklab, var(--fin) var(--grad-dark), transparent) 0%,
+                     color-mix(in oklab, var(--fin) var(--grad-light), transparent) 100% ); }
+  .tint-indigo{ background: linear-gradient(135deg,
+                     color-mix(in oklab, var(--invoice) var(--grad-dark), transparent) 0%,
+                     color-mix(in oklab, var(--invoice) var(--grad-light), transparent) 100% ); }
+  .tint-cyan  { background: linear-gradient(135deg,
+                     color-mix(in oklab, var(--charts) var(--grad-dark), transparent) 0%,
+                     color-mix(in oklab, var(--charts) var(--grad-light), transparent) 100% ); }
+}
+
+/* hover: gradient lembut + border berwarna + ikon sedikit mengembang */
+#btnToDash:hover{ border-color: color-mix(in oklab, var(--dash) 55%, var(--border)); }
+#btnToSales:hover{ border-color: color-mix(in oklab, var(--sales) 55%, var(--border)); }
+#btnToPlan:hover{ border-color: color-mix(in oklab, var(--plan) 55%, var(--border)); }
+#btnToShip:hover{ border-color: color-mix(in oklab, var(--ship) 55%, var(--border)); }
+#btnToInvPage:hover{ border-color: color-mix(in oklab, var(--inv) 55%, var(--border)); }
+#btnToFinPage:hover{ border-color: color-mix(in oklab, var(--fin) 55%, var(--border)); }
+#btnToInvoice:hover{ border-color: color-mix(in oklab, var(--invoice) 55%, var(--border)); }
+#btnToCharts:hover{ border-color: color-mix(in oklab, var(--charts) 55%, var(--border)); }
+
+#btnToDash:hover{ background: linear-gradient(135deg, color-mix(in oklab, var(--dash) 10%, transparent), color-mix(in oklab, var(--dash) 28%, transparent)); }
+#btnToSales:hover{ background: linear-gradient(135deg, color-mix(in oklab, var(--sales) 10%, transparent), color-mix(in oklab, var(--sales) 28%, transparent)); }
+#btnToPlan:hover{ background: linear-gradient(135deg, color-mix(in oklab, var(--plan) 10%, transparent), color-mix(in oklab, var(--plan) 28%, transparent)); }
+#btnToShip:hover{ background: linear-gradient(135deg, color-mix(in oklab, var(--ship) 10%, transparent), color-mix(in oklab, var(--ship) 28%, transparent)); }
+#btnToInvPage:hover{ background: linear-gradient(135deg, color-mix(in oklab, var(--inv) 10%, transparent), color-mix(in oklab, var(--inv) 28%, transparent)); }
+#btnToFinPage:hover{ background: linear-gradient(135deg, color-mix(in oklab, var(--fin) 10%, transparent), color-mix(in oklab, var(--fin) 28%, transparent)); }
+#btnToInvoice:hover{ background: linear-gradient(135deg, color-mix(in oklab, var(--invoice) 10%, transparent), color-mix(in oklab, var(--invoice) 28%, transparent)); }
+#btnToCharts:hover{ background: linear-gradient(135deg, color-mix(in oklab, var(--charts) 10%, transparent), color-mix(in oklab, var(--charts) 28%, transparent)); }
 
 .nav .btn.ghost:hover i{ transform: translateY(-1px) scale(1.06); filter: saturate(2) brightness(1.08) }
 
-/* state aktif di nav: bold + glow + underline indikator */
+/* state aktif di nav: bold + glow + underline indikator + gradient */
 .nav .btn.ghost.active{
   color: var(--ink);
   font-weight: 800;
-  box-shadow: 0 4px 14px rgba(0,0,0,.08);
+  box-shadow: 0 6px 18px rgba(0,0,0,.10);
   transform: translateY(-1px);
 }
-
-/* garis bawah aktif (underline) sesuai warna tombol */
 .nav .btn.ghost.active::after{
   content:"";
   position:absolute; left:10px; right:10px; bottom:-6px; height:3px; border-radius:3px;
-  background: currentColor; opacity:.7;
+  background: currentColor; opacity:.75;
 }
 
-/* aktif: set currentColor per tombol agar underline ikut */
-.nav .btn.ghost.active#btnToDash{ color: var(--dash); border-color: var(--dash); background: color-mix(in oklab, var(--dash) 16%, transparent) }
-.nav .btn.ghost.active#btnToSales{ color: var(--sales); border-color: var(--sales); background: color-mix(in oklab, var(--sales) 16%, transparent) }
-.nav .btn.ghost.active#btnToPlan{ color: var(--plan); border-color: var(--plan); background: color-mix(in oklab, var(--plan) 16%, transparent) }
-.nav .btn.ghost.active#btnToShip{ color: var(--ship); border-color: var(--ship); background: color-mix(in oklab, var(--ship) 16%, transparent) }
-.nav .btn.ghost.active#btnToInvPage{ color: var(--inv); border-color: var(--inv); background: color-mix(in oklab, var(--inv) 16%, transparent) }
-.nav .btn.ghost.active#btnToFinPage{ color: var(--fin); border-color: var(--fin); background: color-mix(in oklab, var(--fin) 16%, transparent) }
-.nav .btn.ghost.active#btnToInvoice{ color: var(--invoice); border-color: var(--invoice); background: color-mix(in oklab, var(--invoice) 16%, transparent) }
-.nav .btn.ghost.active#btnToCharts{ color: var(--charts); border-color: var(--charts); background: color-mix(in oklab, var(--charts) 16%, transparent) }
+/* aktif: set currentColor per tombol + gradient */
+.nav .btn.ghost.active#btnToDash{ color: var(--dash); border-color: var(--dash); background: linear-gradient(135deg, color-mix(in oklab, var(--dash) 14%, transparent), color-mix(in oklab, var(--dash) 42%, transparent)); }
+.nav .btn.ghost.active#btnToSales{ color: var(--sales); border-color: var(--sales); background: linear-gradient(135deg, color-mix(in oklab, var(--sales) 14%, transparent), color-mix(in oklab, var(--sales) 42%, transparent)); }
+.nav .btn.ghost.active#btnToPlan{ color: var(--plan); border-color: var(--plan); background: linear-gradient(135deg, color-mix(in oklab, var(--plan) 14%, transparent), color-mix(in oklab, var(--plan) 42%, transparent)); }
+.nav .btn.ghost.active#btnToShip{ color: var(--ship); border-color: var(--ship); background: linear-gradient(135deg, color-mix(in oklab, var(--ship) 14%, transparent), color-mix(in oklab, var(--ship) 42%, transparent)); }
+.nav .btn.ghost.active#btnToInvPage{ color: var(--inv); border-color: var(--inv); background: linear-gradient(135deg, color-mix(in oklab, var(--inv) 14%, transparent), color-mix(in oklab, var(--inv) 42%, transparent)); }
+.nav .btn.ghost.active#btnToFinPage{ color: var(--fin); border-color: var(--fin); background: linear-gradient(135deg, color-mix(in oklab, var(--fin) 14%, transparent), color-mix(in oklab, var(--fin) 42%, transparent)); }
+.nav .btn.ghost.active#btnToInvoice{ color: var(--invoice); border-color: var(--invoice); background: linear-gradient(135deg, color-mix(in oklab, var(--invoice) 14%, transparent), color-mix(in oklab, var(--invoice) 42%, transparent)); }
+.nav .btn.ghost.active#btnToCharts{ color: var(--charts); border-color: var(--charts); background: linear-gradient(135deg, color-mix(in oklab, var(--charts) 14%, transparent), color-mix(in oklab, var(--charts) 42%, transparent)); }
 
 /* ikon saat active mengikuti currentColor */
 .nav .btn.ghost.active i{ color: currentColor; filter: saturate(2.2) brightness(1.12) }
@@ -231,13 +272,22 @@ video#scanVideo{width:100%;max-height:48vh;border-radius:12px;background:#000}
 
 /* Dark mode tweak: naikkan intensitas tint & shadow */
 @media (prefers-color-scheme: dark){
-  .nav .btn.ghost.active{ box-shadow: 0 6px 20px rgba(0,0,0,.35) }
-  #btnToDash:hover{ background: color-mix(in oklab, var(--dash) 22%, transparent) }
-  #btnToSales:hover{ background: color-mix(in oklab, var(--sales) 22%, transparent) }
-  #btnToPlan:hover{ background: color-mix(in oklab, var(--plan) 22%, transparent) }
-  #btnToShip:hover{ background: color-mix(in oklab, var(--ship) 22%, transparent) }
-  #btnToInvPage:hover{ background: color-mix(in oklab, var(--inv) 22%, transparent) }
-  #btnToFinPage:hover{ background: color-mix(in oklab, var(--fin) 22%, transparent) }
-  #btnToInvoice:hover{ background: color-mix(in oklab, var(--invoice) 22%, transparent) }
-  #btnToCharts:hover{ background: color-mix(in oklab, var(--charts) 22%, transparent) }
+  .nav .btn.ghost.active{ box-shadow: 0 10px 24px rgba(0,0,0,.38) }
+}
+
+/* =========================================================
+   PRIORITY BOOST (Ship & Invoice) — taruh DI BAGIAN BAWAH FILE
+   ========================================================= */
+
+/* Ini jawaban dari "diletakkan dimana?" → Letakkan DI BAGIAN PALING BAWAH style.css,
+   agar override semua aturan sebelumnya. */
+#btnToShip i, #btnToInvoice i{
+  filter: saturate(2.35) brightness(1.16) drop-shadow(0 1px 0 rgba(0,0,0,.06));
+}
+#btnToShip:hover, #btnToInvoice:hover{ transform: translateY(-1px) }
+#btnToShip.active, #btnToInvoice.active{
+  box-shadow: 0 10px 26px rgba(245, 158, 11, .18), 0 2px 8px rgba(0,0,0,.08); /* ship color bias */
+}
+#btnToInvoice.active{
+  box-shadow: 0 10px 26px rgba(99, 102, 241, .18), 0 2px 8px rgba(0,0,0,.08); /* invoice indigo bias */
 }
