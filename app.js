@@ -209,11 +209,33 @@ function debounce(fn, ms=150){
 
 /* ===== UI helpers ===== */
 function show(id){
+  // hide semua page
   const ids=['authView','pageDash','pageSales','pagePlan','pageShip','pageInvoice','pageCharts','pageInventory','pageFinished'];
   ids.forEach(x=>{ const el=document.getElementById(x); if(el) el.classList.add('hidden'); });
   const target=document.getElementById(id);
   if(target) target.classList.remove('hidden');
+
+  // map page -> tombol
+  const map = {
+    pageDash: 'btnToDash',
+    pageSales: 'btnToSales',
+    pagePlan: 'btnToPlan',
+    pageShip: 'btnToShip',
+    pageInventory: 'btnToInvPage',
+    pageFinished: 'btnToFinPage',
+    pageInvoice: 'btnToInvoice',
+    pageCharts: 'btnToCharts'
+  };
+
+  // reset active
+  ['btnToDash','btnToSales','btnToPlan','btnToShip','btnToInvPage','btnToFinPage','btnToInvoice','btnToCharts']
+    .forEach(idBtn => { const b=document.getElementById(idBtn); if(b) b.classList.remove('active'); });
+
+  // set active
+  const btnId = map[id];
+  if(btnId){ const b=document.getElementById(btnId); if(b) b.classList.add('active'); }
 }
+
 function showDoc(dlgId, innerHtml){
   const dlg=document.getElementById(dlgId);
   if(!dlg) return;
