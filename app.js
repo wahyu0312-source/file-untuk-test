@@ -1,11 +1,14 @@
 /* =========================================================
- * app.js — Tokyo Seimitsu ERP (Frontend) — LEVEL MAX
+ * app.js — Tokyo Seimitsu ERP (Frontend) — LEVEL MAX + SW + Skeleton
  * - Nav active + underline slide-in (via CSS) + 3D tilt
  * - SWR cache: UI instant dari localStorage, refresh di background
+ * - Service Worker registration & offline support
  * - Import CSV/XLSX untuk 受注/生産計画/出荷予定
  * - QR scan (jsQR) + Station toggle (工程QR)
  * - Orders/Sales/Plan/Ship/Invoice/Inventory/Finished/Charts
+ * - Skeleton shimmer: Orders, Stats, TodayShip, Proses Grid
  * - Keyboard shortcuts di dialog: E = export, R = reset filter
+ * - 工程内滞留（現在位置）: pewarnaan + font-weight tebal
  * ========================================================= */
 
 /* ===== Config ===== */
@@ -38,7 +41,7 @@ const fmtD = (s)=> s? new Date(s).toISOString().slice(0,10): ''; // yyyy-mm-dd u
 let SESSION=null, CURRENT_PO=null, scanStream=null, scanTimer=null;
 let INV_PREVIEW={info:null, lines:[], inv_id:''};
 let chartsLoaded=false;
-let CHARTS={}; // instances
+let CHARTS={}; // chart instances
 
 /* ===== Visual mapping ===== */
 const STATUS_CLASS = {
@@ -110,6 +113,46 @@ const getCache = (k, maxAgeMs=1000*60*5)=>{ // 5 menit
     return v;
   }catch{return null}
 };
+
+/* ===== Skeleton Shimmer ===== */
+function htmlSkeletonRows(n=6){
+  return Array.from({length:n}).map(()=>`
+    <tr>
+      <td><div class="skeleton skeleton-text" style="width:160px"></div><div class="skeleton skeleton-text" style="width:220px;margin-top:.25rem"></div></td>
+      <td><div class="skeleton skeleton-text" style="width:120px"></div></td>
+      <td><div class="skeleton skeleton-text" style="width:90px"></div></td>
+      <td><div class="skeleton skeleton-text" style="width:90px"></div></td>
+      <td><div class="skeleton" style="width:92px;height:22px;border-radius:999px"></div></td>
+      <td><div class="skeleton" style="width:120px;height:22px;border-radius:999px"></div></td>
+      <td><div class="skeleton skeleton-text" style="width:120px"></div></td>
+      <td><div class="skeleton skeleton-text" style="width:80px"></div></td>
+      <td><div class="skeleton" style="width:140px;height:30px;border-radius:12px"></div></td>
+    </tr>`).join('');
+}
+function showSkeletons(){
+  // Orders table
+  const tbO=$('#tbOrders'); if(tbO) tbO.innerHTML = htmlSkeletonRows(8);
+  // Today shipments list
+  const listToday=$('#listToday'); if(listToday) listToday.innerHTML = `
+    <div class="skeleton skeleton-text" style="width:90%"></div>
+    <div class="skeleton skeleton-text" style="width:70%;margin-top:.35rem"></div>
+    <div class="skeleton skeleton-text" style="width:80%;margin-top:.35rem"></div>`;
+  // Stats
+  const statFinished=$('#statFinished'); if(statFinished) statFinished.innerHTML = `<span class="skeleton" style="display:inline-block;width:80px;height:36px;border-radius:8px"></span>`;
+  const statReady=$('#statReady'); if(statReady) statReady.innerHTML = `<span class="skeleton" style="display:inline-block;width:36px;height:16px;border-radius:6px"></span>`;
+  const statShipped=$('#statShipped'); if(statShipped) statShipped.innerHTML = `<span class="skeleton" style="display:inline-block;width:36px;height:16px;border-radius:6px"></span>`;
+  // Process grid
+  const grid=$('#gridProc'); if(grid){
+    grid.innerHTML = PROCESSES.map(()=>`
+      <div class="grid-chip chip-muted">
+        <div class="muted s skeleton skeleton-text" style="width:60%">&nbsp;</div>
+        <div class="h"><span class="skeleton" style="display:inline-block;width:28px;height:24px;border-radius:6px"></span></div>
+      </div>`).join('');
+  }
+}
+function hideSkeletons(){
+  // No-op: skeleton diganti saat render nyata
+}
 
 /* ===== Boot ===== */
 window.addEventListener('DOMContentLoaded', ()=>{
@@ -194,7 +237,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   const btnShipEdit = $('#btnShipEdit');
   const btnShipDelete = $('#btnShipDelete');
   const btnShipByPO = $('#btnShipByPO');
-  const btnShipByID = $('#btnShipByID');
+  const btnShipByID = $('#btnShipByID'];
   const btnShipImport = $('#btnShipImport');
   const fileShip = $('#fileShip');
   if(btnSchedule) btnSchedule.onclick = scheduleUI;
@@ -234,6 +277,12 @@ window.addEventListener('DOMContentLoaded', ()=>{
 
   // Inisialisasi 3D tilt di tombol nav
   initNavTilt();
+
+  // REGISTER SERVICE WORKER (offline-friendly)
+  registerServiceWorker();
+
+  // Skeleton awal untuk rasa “instan”
+  showSkeletons();
 });
 
 /* ===== UI helpers ===== */
@@ -298,6 +347,15 @@ function initNavTilt(){
   });
 }
 
+/* ===== Service Worker Registration ===== */
+function registerServiceWorker(){
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js', {scope:'./'})
+      .then(()=>console.log('SW registered'))
+      .catch(err=>console.warn('SW registration failed', err));
+  }
+}
+
 /* ===== Masters ===== */
 async function loadMasters(){
   try{
@@ -324,10 +382,8 @@ async function hydrateFromCache(){
     }
   }
   const loc = getCache(CACHE_KEYS.LOC);
-  if(loc){
-    const grid=$('#gridProc');
-    if(grid) grid.innerHTML = PROCESSES.map(p=> `<div class="grid-chip"><div class="muted s">${p}</div><div class="h">${loc[p]||0}</div></div>`).join('');
-  }
+  if(loc) renderProcessGrid(loc);
+
   const orders = getCache(CACHE_KEYS.ORDERS);
   if(orders && $('#tbOrders')) renderOrdersFrom(orders);
   const sales = getCache(CACHE_KEYS.SALES);
@@ -337,6 +393,8 @@ async function hydrateFromCache(){
 /* ===== Dashboard (tanpa charts) ===== */
 async function refreshAll(keep=false){
   try{
+    showSkeletons();
+
     const [s, today, loc] = await Promise.all([
       apiGet({action:'stock'}),
       apiGet({action:'todayShip'}),
@@ -354,8 +412,7 @@ async function refreshAll(keep=false){
     const listToday=$('#listToday');
     if(listToday) listToday.innerHTML = today.length ? today.map(r=>`<div><span>${r.po_id}</span><span>${fmtD(r.scheduled_date)}・${r.qty}</span></div>`).join('') : '<div class="muted">本日予定なし</div>';
 
-    const grid=$('#gridProc');
-    if(grid) grid.innerHTML = PROCESSES.map(p=> `<div class="grid-chip"><div class="muted s">${p}</div><div class="h">${loc[p]||0}</div></div>`).join('');
+    renderProcessGrid(loc);
 
     if(!keep){ const q=$('#searchQ'); if(q) q.value=''; }
     const orders=await apiGet({action:'listOrders',q:($('#searchQ')?.value||'')});
@@ -366,7 +423,24 @@ async function refreshAll(keep=false){
     setCache(CACHE_KEYS.SALES, sales);
     renderSalesFrom(sales);
 
-  }catch(e){ console.error(e); }
+    hideSkeletons();
+  }catch(e){
+    console.error(e);
+    hideSkeletons();
+  }
+}
+
+/* ===== 工程内滞留（現在位置） grid ===== */
+function renderProcessGrid(loc){
+  const grid=$('#gridProc'); if(!grid) return;
+  grid.innerHTML = PROCESSES.map((p,idx)=> {
+    const val = loc[p]||0;
+    // chip warna bergradasi via kelas chip-idx
+    return `<div class="grid-chip chip-${idx%6}">
+      <div class="muted s">${p}</div>
+      <div class="h strong">${val}</div>
+    </div>`;
+  }).join('');
 }
 
 /* ===== Orders table ===== */
@@ -404,7 +478,7 @@ function renderOrdersFrom(rows){
       <div class="actions-2col">
         <button class="btn ghost s" onclick="openTicket('${r.po_id}')"><i class="fa-regular fa-file-lines"></i> 票</button>
         <button class="btn ghost s" onclick="startScanFor('${r.po_id}')"><i class="fa-solid fa-qrcode"></i> 更新</button>
-        <button class="btn ghost s" onclick="openShipByPO('${r.po_id}')"><i class="fa-solid fa-truck"></i> 出荷票</button>
+        <button class="btn ghost s" onclick="openShipByPO('${r.po_id}')"><i class="fa-solid fa-truck-fast"></i> 出荷票</button>
         <button class="btn ghost s" onclick="openHistory('${r.po_id}')"><i class="fa-solid fa-clock-rotate-left"></i> 履歴</button>
       </div>`;
 
@@ -926,7 +1000,6 @@ function dialogShortcuts(e){
   if(!anyOpen) return;
   const k = e.key.toLowerCase();
   if(k==='e'){ // export
-    // prioritas invoice CSV atau export button lain
     if($('#dlgTicket')?.open && $('#btnInvCSV')){ $('#btnInvCSV').click(); return; }
     if($('#btnShipExport') && !$('#pageShip')?.classList.contains('hidden')){ $('#btnShipExport').click(); return; }
     if($('#btnExportOrders') && !$('#pageDash')?.classList.contains('hidden')){ $('#btnExportOrders').click(); return; }
@@ -950,7 +1023,7 @@ function downloadCSV(filename, rows){
   document.body.appendChild(a); a.click(); a.remove();
 }
 
-/* ===== Expose some funcs to window (for inline onclick) ===== */
+/* ===== Expose funcs to window ===== */
 window.openTicket = openTicket;
 window.startScanFor = startScanFor;
 window.openHistory = openHistory;
