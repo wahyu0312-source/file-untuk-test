@@ -20,6 +20,64 @@
 
   <!-- App -->
   <script defer src="app.js"></script>
+
+  <style>
+    :root{
+      --bg:#0b0f19;            /* dark header base for elegant look */
+      --ink:#0f172a;
+      --panel:#ffffff;
+      --muted:#64748b;
+      --border:#e5e7eb;
+      --ring:#dbe3ff;
+      --accent:#2563eb;
+      --radius:14px;
+      --shadow:0 12px 30px rgba(2,6,23,.12);
+    }
+    /* ===== navigation (example; keep your own style.css too) ===== */
+    .nav{
+      position:sticky; top:0; z-index:1000;
+      display:flex; align-items:center; justify-content:space-between;
+      gap:.8rem; padding:10px clamp(12px,2vw,24px);
+      background:linear-gradient(180deg,#0b1224 0%, #0c1326 100%);
+      border-bottom:1px solid rgba(255,255,255,.08);
+      backdrop-filter:saturate(120%) blur(10px);
+      color:#e5eaf6;
+    }
+    .nav-left{display:flex; align-items:center; gap:.7rem}
+    .logo{width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 2px 6px rgba(0,0,0,.3))}
+    .brand{font-weight:800;letter-spacing:.02em}
+
+    .nav-right{display:flex; align-items:center; gap:.5rem; flex-wrap:wrap}
+    .btn{display:inline-flex; align-items:center; gap:.4rem; border:1px solid rgba(255,255,255,.12); background:transparent; color:#e8edfb; padding:.45rem .7rem; border-radius:10px; cursor:pointer}
+    .btn.ghost{background:rgba(255,255,255,.03)}
+    .btn:hover{border-color:#93c5fd}
+
+    /* ===== Weather pill (city + icon + temp) ===== */
+    .wx-pill{
+      display:inline-flex; align-items:center; gap:.6rem;
+      padding:.5rem .8rem;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.06));
+      color:#eef2ff;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.2), 0 6px 18px rgba(2,6,23,.25);
+      min-height:40px;
+      max-width:60vw;
+    }
+    .wx-city{font-size:.9rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; opacity:.95}
+    .wx-temp{font-weight:900; letter-spacing:.02em}
+    .wx-ico{width:22px;height:22px; display:inline-block}
+    .wx-dot{width:6px;height:6px;border-radius:50%;background:#93c5fd;opacity:.9}
+    @media (max-width:760px){
+      .brand{display:none}
+      .wx-pill{order:-1}
+    }
+
+    /* Corner design credit */
+    .corner-brand{
+      position:fixed; right:10px; bottom:10px; font-size:.75rem; opacity:.6; color:#64748b; text-decoration:none
+    }
+  </style>
 </head>
 <body>
   <!-- ================= NAV ================= -->
@@ -28,6 +86,15 @@
       <img src="assets/tsh.png" class="logo" alt="">
       <span class="brand">東京精密発條株式会社システム</span>
     </div>
+
+    <!-- ===== Weather pill (only: city + icon + temp) ===== -->
+    <div id="weather" class="wx-pill" aria-live="polite" title="現在の天気">
+      <span id="wxCity" class="wx-city">取得中…</span>
+      <span class="wx-dot" aria-hidden="true"></span>
+      <span id="wxIcon" class="wx-ico" aria-hidden="true"></span>
+      <span id="wxTemp" class="wx-temp">--℃</span>
+    </div>
+
     <div class="nav-right">
       <button id="btnToDash" class="btn ghost hidden"><i class="fa-solid fa-gauge"></i> ダッシュボード</button>
       <button id="btnToSales" class="btn ghost hidden"><i class="fa-regular fa-handshake"></i> 受注（営業）</button>
@@ -44,19 +111,11 @@
           <i class="fa-solid fa-gear"></i> 設定 <i class="fa-solid fa-caret-down caret" style="margin-left:.25rem"></i>
         </summary>
         <div class="menu right">
-          <button id="miStationQR" class="menu-item">
-            <i class="fa-solid fa-qrcode"></i> 工程QR
-          </button>
-          <button id="miAddUser" class="menu-item">
-            <i class="fa-solid fa-user-plus"></i> ユーザー追加
-          </button>
-          <button id="miChangePass" class="menu-item">
-            <i class="fa-solid fa-key"></i> パス変更
-          </button>
+          <button id="miStationQR" class="menu-item"><i class="fa-solid fa-qrcode"></i> 工程QR</button>
+          <button id="miAddUser" class="menu-item"><i class="fa-solid fa-user-plus"></i> ユーザー追加</button>
+          <button id="miChangePass" class="menu-item"><i class="fa-solid fa-key"></i> パス変更</button>
           <hr style="border:none;border-top:1px solid var(--border);margin:.35rem 0">
-          <button id="btnLogout" class="menu-item">
-            <i class="fa-solid fa-right-from-bracket"></i> ログアウト
-          </button>
+          <button id="btnLogout" class="menu-item"><i class="fa-solid fa-right-from-bracket"></i> ログアウト</button>
         </div>
       </details>
       <span id="userInfo" class="muted"></span>
@@ -316,29 +375,6 @@
     </section>
   </main>
 
-  <!-- ================ 統計 (Charts) ================ -->
-  <main id="pageCharts" class="container hidden">
-    <section class="card">
-      <header class="row-between">
-        <h3><i class="fa-solid fa-chart-simple"></i> 統計</h3>
-        <div class="row gap">
-          <select id="chartYear" class="input" style="width:120px"></select>
-          <button id="btnChartsRefresh" class="btn ghost"><i class="fa-solid fa-rotate"></i> 更新</button>
-        </div>
-      </header>
-      <div class="grid-3">
-        <div class="tile"><div class="muted s">月別出荷数量</div><div style="height:220px"><canvas id="chMonthly"></canvas></div></div>
-        <div class="tile"><div class="muted s">得意先別出荷</div><div style="height:220px"><canvas id="chCustomer"></canvas></div></div>
-        <div class="tile"><div class="muted s">在庫区分</div><div style="height:220px"><canvas id="chStock"></canvas></div></div>
-      </div>
-      <div class="grid-3" style="margin-top:1rem">
-        <div class="tile"><div class="muted s">工程内WIP</div><div style="height:220px"><canvas id="chWipProc"></canvas></div></div>
-        <div class="tile"><div class="muted s">営業 受注数</div><div style="height:220px"><canvas id="chSales"></canvas></div></div>
-        <div class="tile"><div class="muted s">生産計画 作成数</div><div style="height:220px"><canvas id="chPlan"></canvas></div></div>
-      </div>
-    </section>
-  </main>
-
   <!-- ================ Dialogs ================ -->
   <dialog id="dlgStationQR" class="paper">
     <div class="body"><h3>工程QR（現場掲示用）</h3><p class="muted s">フォーマット: <code>ST:工程名</code></p><div id="qrWrap" class="grid"></div></div>
@@ -359,5 +395,87 @@
   <dialog id="dlgHistory" class="paper"><div class="body"><h3>更新履歴</h3><div id="histBody"></div></div><footer class="row-end"><button class="btn" onclick="document.getElementById('dlgHistory').close()">閉じる</button></footer></dialog>
   <dialog id="dlgTicket" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()"><i class="fa-solid fa-print"></i> 印刷</button><button class="btn" onclick="document.getElementById('dlgTicket').close()">閉じる</button></footer></dialog>
   <dialog id="dlgShip" class="paper"><div class="body"></div><footer class="row-end"><button class="btn ghost" onclick="window.print()"><i class="fa-solid fa-print"></i> 印刷</button><button class="btn" onclick="document.getElementById('dlgShip').close()">閉じる</button></footer></dialog>
+
+  <!-- ============== Weather Script (no key needed) ============== -->
+  <script>
+  (async function weatherInit(){
+    const elCity = document.getElementById('wxCity');
+    const elTemp = document.getElementById('wxTemp');
+    const elIcon = document.getElementById('wxIcon');
+
+    const fallback = { lat:35.6809591, lon:139.7673068, city:'東京' };
+    const geoOpts = { enableHighAccuracy:false, timeout:6000, maximumAge:300000 };
+
+    function svg(parts){
+      return `<svg viewBox="0 0 24 24" class="wx-ico" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${parts}</g></svg>`;
+    }
+    // Clean, minimal icons (mono) mapped to WMO codes
+    const ICONS = {
+      sun: svg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'),
+      cloud: svg('<path d="M6 16a4 4 0 0 1 1-7.9A5.5 5.5 0 0 1 18 10a4 4 0 0 1 0 8H8a4 4 0 0 1-2-7.5"/>'),
+      sunCloud: svg('<circle cx="6" cy="6" r="2.5"/><path d="M6 1.5v1.5M6 12V10.5M1.5 6H3M9 6h1.5M3.8 3.8l1 1M7.2 7.2l1 1"/><path d="M9 16a4 4 0 0 1 1-7.9A5.5 5.5 0 0 1 21 10a4 4 0 0 1 0 6h-8a4 4 0 0 1-2-3"/>'),
+      fog: svg('<path d="M3 12h18M4 15h16M2 18h20"/><path d="M6 9a6 6 0 0 1 12 0"/>'),
+      drizzle: svg('<path d="M6 16a4 4 0 0 1 1-7.9A5.5 5.5 0 0 1 18 10a4 4 0 0 1 0 6H8a4 4 0 0 1-2-3"/><path d="M9 21l.6-1.6M12.5 21l.6-1.6M15.8 21l.6-1.6"/>'),
+      rain: svg('<path d="M6 16a4 4 0 0 1 1-7.9A5.5 5.5 0 0 1 18 10a4 4 0 0 1 0 6H8a4 4 0 0 1-2-3"/><path d="M9 22l1-3M13 22l1-3M17 22l1-3"/>'),
+      snow: svg('<path d="M6 16a4 4 0 0 1 1-7.9A5.5 5.5 0 0 1 18 10a4 4 0 0 1 0 6H8a4 4 0 0 1-2-3"/><path d="M12 21v-3M12 18l-1.5-1M12 18l1.5-1M12 21l-1.5 1M12 21l1.5 1"/>'),
+      thunder: svg('<path d="M6 16a4 4 0 0 1 1-7.9A5.5 5.5 0 0 1 18 10a4 4 0 0 1 0 6H8a4 4 0 0 1-2-3"/><path d="M12 12l-2 4h3l-1 4l4-6h-3l1-2z"/>')
+    };
+    function codeToIcon(c){
+      c = Number(c);
+      if ([0].includes(c)) return ICONS.sun;
+      if ([1,2].includes(c)) return ICONS.sunCloud;
+      if ([3].includes(c)) return ICONS.cloud;
+      if ([45,48].includes(c)) return ICONS.fog;
+      if ([51,53,55,56,57].includes(c)) return ICONS.drizzle;
+      if ([61,63,65,66,67,80,81,82].includes(c)) return ICONS.rain;
+      if ([71,73,75,77,85,86].includes(c)) return ICONS.snow;
+      if ([95,96,99].includes(c)) return ICONS.thunder;
+      return ICONS.cloud;
+    }
+
+    function getGeo(){
+      return new Promise(res=>{
+        if(!navigator.geolocation) return res(null);
+        navigator.geolocation.getCurrentPosition(
+          p=>res({lat:p.coords.latitude, lon:p.coords.longitude}),
+          _=>res(null),
+          geoOpts
+        );
+      });
+    }
+    async function getCity(lat, lon){
+      try{
+        const r = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=ja`);
+        const j = await r.json();
+        // prefer city/locality; fall back to prefecture or country
+        const name = j.city || j.locality || j.principalSubdivision || j.countryName || '—';
+        return name;
+      }catch{ return fallback.city; }
+    }
+    async function getWeather(lat, lon){
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`;
+      const r = await fetch(url, {cache:'no-store'});
+      const j = await r.json();
+      return j.current_weather; // {temperature, weathercode, windspeed, ...}
+    }
+    function render(city, cw){
+      elCity.textContent = city || '—';
+      const t = (cw && typeof cw.temperature==='number') ? Math.round(cw.temperature) : NaN;
+      elTemp.textContent = (isFinite(t)? t : '--') + '℃';
+      elIcon.innerHTML = codeToIcon(cw?.weathercode ?? 3);
+      elIcon.setAttribute('aria-label','天気アイコン');
+    }
+
+    try{
+      const g = await getGeo();
+      const lat = g?.lat ?? fallback.lat;
+      const lon = g?.lon ?? fallback.lon;
+      const [city, cw] = await Promise.all([getCity(lat,lon), getWeather(lat,lon)]);
+      render(city || fallback.city, cw);
+    }catch(e){
+      render(fallback.city, null);
+    }
+  })();
+  </script>
 </body>
 </html>
