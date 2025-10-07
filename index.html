@@ -470,109 +470,215 @@
   </script>
   <!-- ===== /Script Cuaca ===== -->
 <script>
-  // --- Tampilkan tombol Charts & buka halaman Charts ---
-  document.addEventListener('DOMContentLoaded', () => {
+(function(){
+  // --- UTIL ---
+  const NG_RX = /(NG|不良|異常|不適合)/i;
+  const STATUS_KEYS = [
+    { key:'出荷済', rx:/出荷/ }, { key:'検査', rx:/検査/ }, { key:'組立', rx:/組立/ },
+    { key:'加工', rx:/加工/ }, { key:'準備', rx:/準備/ }, { key:'その他', rx:/.*/ }
+  ];
+  const pad = n => String(n).padStart(2,'0');
+  function parseJPDate(s){
+    if(!s) return null;
+    s = String(s).trim();
+    // yyyy/mm/dd[ hh:mm], yyyy-mm-dd[ hh:mm]
+    const m = s.match(/^(\d{4})\D(\d{1,2})\D(\d{1,2})(?:\D(\d{1,2})\D(\d{1,2}))?/);
+    if(m){ return new Date(+m[1], +m[2]-1, +m[3], +(m[4]||0), +(m[5]||0)); }
+    const d = new Date(s);
+    return isNaN(d)? null : d;
+  }
+  const monthKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+
+  // --- BACA TABEL DAN AKUMULASI ---
+  function collectFromOrders(){
+    const rows = document.querySelectorAll('#tbOrders tr');
+    // INDEX KOLOM (0-based): 得意先=1, 状態=5, 更新日時=6
+    const COL_CUSTOMER = 1, COL_STATUS = 5, COL_UPDATED = 6;
+    const byMonth = new Map();    // key: YYYY-MM => {total, ng}
+    const byCustomer = new Map(); // customer => count
+    const byStatus = new Map();   // statusGroup => count
+    const byProc = new Map();     // proses (工程) dari kolom 6? (di sini pakai 状態グループ)
+    rows.forEach(tr=>{
+      const tds = tr.querySelectorAll('td');
+      if(tds.length === 0) return;
+      const cust = (tds[COL_CUSTOMER]?.textContent||'').trim() || '—';
+      const status = (tds[COL_STATUS]?.textContent||'').trim();
+      const updated = (tds[COL_UPDATED]?.textContent||'').trim();
+      const d = parseJPDate(updated) || new Date(); // fallback: sekarang
+      const mk = monthKey(d);
+      const isNG = NG_RX.test(status);
+
+      // per bulan
+      const bm = byMonth.get(mk) || { total:0, ng:0 };
+      bm.total += 1; bm.ng += isNG ? 1 : 0;
+      byMonth.set(mk, bm);
+
+      // per customer
+      byCustomer.set(cust, (byCustomer.get(cust)||0) + 1);
+
+      // status mapping
+      let g = 'その他';
+      for(const s of STATUS_KEYS){ if(s.rx.test(status)){ g = s.key; break; } }
+      byStatus.set(g, (byStatus.get(g)||0) + 1);
+      byProc.set(g, (byProc.get(g)||0) + 1);
+    });
+    return { byMonth, byCustomer, byStatus, byProc };
+  }
+
+  function collectFromSales(){
+    const rows = document.querySelectorAll('#tbSales tr');
+    // INDEX KOLOM (0-based): 受注日=1, 得意先=2
+    const COL_DATE = 1, COL_CUSTOMER = 2;
+    const byMonth = new Map(); // SO per bulan
+    rows.forEach(tr=>{
+      const tds = tr.querySelectorAll('td');
+      if(!tds.length) return;
+      const d = parseJPDate((tds[COL_DATE]?.textContent||'').trim());
+      if(!d) return;
+      const mk = monthKey(d);
+      byMonth.set(mk, (byMonth.get(mk)||0) + 1);
+    });
+    return { byMonth };
+  }
+
+  // urut key bulan ascending
+  function sortMonthKeys(keys){
+    return keys.sort((a,b)=> a.localeCompare(b));
+  }
+
+  // --- INISIALISASI CHART SEKALI ---
+  let _chartsInited = false;
+  function initChartsOnce(){
+    if(_chartsInited || !window.Chart) return;
+    _chartsInited = true;
+
+    const ord = collectFromOrders();
+    const sal = collectFromSales();
+
+    // Bulan gabungan dari orders & sales
+    const keysSet = new Set([...ord.byMonth.keys(), ...sal.byMonth.keys()]);
+    const keys = sortMonthKeys(Array.from(keysSet));
+    // dataset monthly
+    const totalArr = keys.map(k => (ord.byMonth.get(k)?.total)||0);
+    const ngArr    = keys.map(k => (ord.byMonth.get(k)?.ng)||0);
+    const soArr    = keys.map(k => (sal.byMonth.get(k)||0));
+
+    // CUSTOMER TOP N
+    const custEntries = Array.from(ord.byCustomer.entries()).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const custLabels = custEntries.map(([k])=>k);
+    const custVals   = custEntries.map(([,v])=>v);
+
+    // STATUS / WIP
+    const stEntries = Array.from(ord.byStatus.entries()).sort((a,b)=>b[1]-a[1]);
+    const stLabels = stEntries.map(([k])=>k);
+    const stVals   = stEntries.map(([,v])=>v);
+
+    // --- chMonthly: total vs NG (bar/line) ---
+    const elMonthly = document.getElementById('chMonthly');
+    if (elMonthly){
+      new Chart(elMonthly.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: keys.length? keys : ['データなし'],
+          datasets: [
+            { label:'出荷件数', data: keys.length? totalArr : [0] },
+            { label:'NG件数',  data: keys.length? ngArr    : [0], type:'line', tension:.3 }
+          ]
+        },
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{ display:true } },
+          scales:{ y:{ beginAtZero:true } }
+        }
+      });
+    }
+
+    // --- chCustomer: distribusi customer ---
+    const elCustomer = document.getElementById('chCustomer');
+    if (elCustomer){
+      new Chart(elCustomer.getContext('2d'), {
+        type:'pie',
+        data:{
+          labels: custLabels.length? custLabels : ['データなし'],
+          datasets:[{ data: custLabels.length? custVals : [1] }]
+        },
+        options:{ responsive:true, maintainAspectRatio:false }
+      });
+    }
+
+    // --- chStock: distribusi status ---
+    const elStock = document.getElementById('chStock');
+    if (elStock){
+      new Chart(elStock.getContext('2d'), {
+        type:'doughnut',
+        data:{
+          labels: stLabels.length? stLabels : ['データなし'],
+          datasets:[{ data: stLabels.length? stVals : [1] }]
+        },
+        options:{ responsive:true, maintainAspectRatio:false }
+      });
+    }
+
+    // --- chWipProc: pakai status group sebagai proxy proses ---
+    const elWip = document.getElementById('chWipProc');
+    if (elWip){
+      new Chart(elWip.getContext('2d'), {
+        type:'bar',
+        data:{ labels: stLabels.length? stLabels : ['データなし'], datasets:[{ label:'WIP', data: stLabels.length? stVals : [0]}]},
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} }
+      });
+    }
+
+    // --- chSales / chPlan (opsional dari SO per bulan; jika tidak ada, tampilkan kosong) ---
+    const elSales = document.getElementById('chSales');
+    if (elSales){
+      new Chart(elSales.getContext('2d'), {
+        type:'line',
+        data:{ labels: keys.length? keys : ['データなし'], datasets:[{ label:'受注', data: keys.length? soArr : [0], tension:.3 }] },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
+      });
+    }
+    const elPlan = document.getElementById('chPlan');
+    if (elPlan){
+      new Chart(elPlan.getContext('2d'), {
+        type:'line',
+        data:{ labels: keys.length? keys : ['データなし'], datasets:[{ label:'計画', data: keys.length? soArr.map(v=>Math.max(0, v-1)) : [0], tension:.3 }] },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
+      });
+    }
+  }
+
+  // --- AKTIFKAN TOMBOL 「統計」 & NAVIGASI ---
+  document.addEventListener('DOMContentLoaded', ()=>{
     const btnCharts = document.getElementById('btnToCharts');
-    if (btnCharts) {
+    if (btnCharts){
       btnCharts.classList.remove('hidden'); // tampilkan tombol
-      btnCharts.addEventListener('click', () => {
+      btnCharts.addEventListener('click', ()=>{
         const pages = [
           'authView','pageDash','pageSales','pagePlan','pageShip',
           'pageInventory','pageFinished','pageInvoice','pageCharts'
         ];
         pages.forEach(id => document.getElementById(id)?.classList.add('hidden'));
         document.getElementById('pageCharts')?.classList.remove('hidden');
-        initChartsOnce(); // gambar chart saat halaman dibuka
+        initChartsOnce();
       });
+    }
+
+    // Jika halaman Charts sudah terbuka via cara lain, tetap inisialisasi
+    if (!document.getElementById('pageCharts')?.classList.contains('hidden')){
+      initChartsOnce();
     }
   });
 
-  // --- Gambar chart (sekali saja) ---
-  let _chartsInited = false;
-  function initChartsOnce(){
-    if (_chartsInited) return;
-    _chartsInited = true;
-
-    // Contoh data dummy — ganti sesuai datamu jika perlu
-    const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
-    const dataMonthly = [12,19,8,15,22,17,13,20,18,24,16,21];
-
-    const elMonthly = document.getElementById('chMonthly');
-    if (elMonthly && window.Chart) {
-      new Chart(elMonthly.getContext('2d'), {
-        type: 'bar',
-        data: {
-          labels: months,
-          datasets: [{ label: '出荷数量', data: dataMonthly }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: { y: { beginAtZero: true } }
-        }
-      });
-    }
-
-    const elCustomer = document.getElementById('chCustomer');
-    if (elCustomer && window.Chart) {
-      new Chart(elCustomer.getContext('2d'), {
-        type: 'pie',
-        data: {
-          labels: ['A社','B社','C社','D社'],
-          datasets: [{ data: [35,25,20,20] }]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
-      });
-    }
-
-    const elStock = document.getElementById('chStock');
-    if (elStock && window.Chart) {
-      new Chart(elStock.getContext('2d'), {
-        type: 'doughnut',
-        data: {
-          labels: ['仕掛','完成','出荷待ち'],
-          datasets: [{ data: [45,30,25] }]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
-      });
-    }
-
-    const elWip = document.getElementById('chWipProc');
-    if (elWip && window.Chart) {
-      new Chart(elWip.getContext('2d'), {
-        type: 'bar',
-        data: {
-          labels: ['切断','加工','組立','検査','梱包'],
-          datasets: [{ label: 'WIP', data: [10,18,9,6,4] }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: { y: { beginAtZero: true } }
-        }
-      });
-    }
-
-    const elSales = document.getElementById('chSales');
-    if (elSales && window.Chart) {
-      new Chart(elSales.getContext('2d'), {
-        type: 'line',
-        data: { labels: months, datasets: [{ label:'受注', data: [5,7,6,9,8,10,7,12,9,11,8,13], tension:.3 }] },
-        options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
-      });
-    }
-
-    const elPlan = document.getElementById('chPlan');
-    if (elPlan && window.Chart) {
-      new Chart(elPlan.getContext('2d'), {
-        type: 'line',
-        data: { labels: months, datasets: [{ label:'計画', data: [4,6,5,8,7,9,6,11,8,10,7,12], tension:.3 }] },
-        options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
-      });
-    }
+  // Jika data diisi setelah fetch (app.js), panggil lagi saat ada mutasi
+  const tbOrders = document.getElementById('tbOrders');
+  if (tbOrders && 'MutationObserver' in window){
+    const mo = new MutationObserver(()=>{ /* refresh chart saat user buka charts */ });
+    mo.observe(tbOrders, { childList:true, subtree:false });
   }
+})();
 </script>
+
 
 </body>
 </html>
