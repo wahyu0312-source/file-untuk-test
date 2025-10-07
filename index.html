@@ -469,6 +469,110 @@
   })();
   </script>
   <!-- ===== /Script Cuaca ===== -->
+<script>
+  // --- Tampilkan tombol Charts & buka halaman Charts ---
+  document.addEventListener('DOMContentLoaded', () => {
+    const btnCharts = document.getElementById('btnToCharts');
+    if (btnCharts) {
+      btnCharts.classList.remove('hidden'); // tampilkan tombol
+      btnCharts.addEventListener('click', () => {
+        const pages = [
+          'authView','pageDash','pageSales','pagePlan','pageShip',
+          'pageInventory','pageFinished','pageInvoice','pageCharts'
+        ];
+        pages.forEach(id => document.getElementById(id)?.classList.add('hidden'));
+        document.getElementById('pageCharts')?.classList.remove('hidden');
+        initChartsOnce(); // gambar chart saat halaman dibuka
+      });
+    }
+  });
+
+  // --- Gambar chart (sekali saja) ---
+  let _chartsInited = false;
+  function initChartsOnce(){
+    if (_chartsInited) return;
+    _chartsInited = true;
+
+    // Contoh data dummy — ganti sesuai datamu jika perlu
+    const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+    const dataMonthly = [12,19,8,15,22,17,13,20,18,24,16,21];
+
+    const elMonthly = document.getElementById('chMonthly');
+    if (elMonthly && window.Chart) {
+      new Chart(elMonthly.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: months,
+          datasets: [{ label: '出荷数量', data: dataMonthly }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    const elCustomer = document.getElementById('chCustomer');
+    if (elCustomer && window.Chart) {
+      new Chart(elCustomer.getContext('2d'), {
+        type: 'pie',
+        data: {
+          labels: ['A社','B社','C社','D社'],
+          datasets: [{ data: [35,25,20,20] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    const elStock = document.getElementById('chStock');
+    if (elStock && window.Chart) {
+      new Chart(elStock.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: ['仕掛','完成','出荷待ち'],
+          datasets: [{ data: [45,30,25] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    const elWip = document.getElementById('chWipProc');
+    if (elWip && window.Chart) {
+      new Chart(elWip.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: ['切断','加工','組立','検査','梱包'],
+          datasets: [{ label: 'WIP', data: [10,18,9,6,4] }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    const elSales = document.getElementById('chSales');
+    if (elSales && window.Chart) {
+      new Chart(elSales.getContext('2d'), {
+        type: 'line',
+        data: { labels: months, datasets: [{ label:'受注', data: [5,7,6,9,8,10,7,12,9,11,8,13], tension:.3 }] },
+        options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
+      });
+    }
+
+    const elPlan = document.getElementById('chPlan');
+    if (elPlan && window.Chart) {
+      new Chart(elPlan.getContext('2d'), {
+        type: 'line',
+        data: { labels: months, datasets: [{ label:'計画', data: [4,6,5,8,7,9,6,11,8,10,7,12], tension:.3 }] },
+        options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
+      });
+    }
+  }
+</script>
 
 </body>
 </html>
