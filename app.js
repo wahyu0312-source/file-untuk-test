@@ -827,6 +827,59 @@ async function openInvoiceDoc(inv_id){
     showDoc('dlgTicket', body);
   }catch(e){ alert(e.message||e); }
 }
+// ===== Invoice: CSV Export =====
+function exportInvoiceCSV(){
+  if(!INV_PREVIEW || !INV_PREVIEW.lines || !INV_PREVIEW.lines.length){
+    alert('先に集計してください（「集計（出荷済）」を押してください）');
+    return;
+  }
+
+  const info = INV_PREVIEW.info || {};
+  const lines = INV_PREVIEW.lines || [];
+
+  // header meta (opsional, bisa dihapus kalau tidak perlu)
+  const metaRows = [
+    ['得意先', info.得意先 || ''],
+    ['期間自', info.期間自 || '', '期間至', info.期間至 || ''],
+    ['請求日', info.請求日 || '', '通貨', info.通貨 || '', 'メモ', info.メモ || ''],
+    []
+  ];
+
+  // header tabel
+  const headers = ['行No','品名','品番','図番','数量','単価','金額','PO','出荷ID'];
+
+  // data tabel
+  const dataRows = lines.map((l, i) => ([
+    i + 1,
+    l.品名 || '',
+    l.品番 || '',
+    l.図番 || '',
+    Number(l.数量 || 0),
+    Number(l.単価 || 0),
+    Number((l.数量 || 0) * (l.単価 || 0)),
+    l.PO || l.POs || '',
+    l.出荷ID || l.出荷IDs || ''
+  ]));
+
+  const escapeCSV = v => `"${String(v).replace(/"/g, '""')}"`;
+  const toRow = arr => arr.map(escapeCSV).join(',');
+
+  const csv =
+    metaRows.map(toRow).join('\r\n') + '\r\n' +
+    toRow(headers) + '\r\n' +
+    dataRows.map(toRow).join('\r\n');
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const fn = `invoice_${(info.得意先 || 'customer')}_${(info.請求日 || '').replace(/-/g,'')}.csv`;
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url; a.download = fn;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
 
 /* ===== Charts ===== */
 function ensureChartsLoaded(){ renderCharts().catch(console.warn); }
