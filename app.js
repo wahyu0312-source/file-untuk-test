@@ -866,6 +866,31 @@ function downloadCSV(filename, rows){
 }
 async function exportOrdersCSV(){ const rows=await apiGet({action:'listOrders'},{swrKey:'orders'}); downloadCSV('orders.csv', rows); }
 async function exportShipCSV(){ const rows=await apiGet({action:'todayShip'},{swrKey:'todayShip'}); downloadCSV('today_ship.csv', rows); }
+// === NEW: Export current invoice preview lines to CSV ===
+function exportInvoiceCSV(){
+  if (!INV_PREVIEW || !INV_PREVIEW.lines || !INV_PREVIEW.lines.length){
+    alert('先に「集計（出荷済）」を実行してください。');
+    return;
+  }
+  const head = ['#','品名','品番','図番','数量','単価','金額','PO','出荷ID'];
+  const rows = INV_PREVIEW.lines.map((l,i)=>({
+    '#': i+1,
+    '品名': l.品名||'',
+    '品番': l.品番||'',
+    '図番': l.図番||'',
+    '数量': l.数量||0,
+    '単価': l.単価||0,
+    '金額': (Number(l.数量||0)*Number(l.単価||0))||0,
+    'PO': l.PO || l.POs || '',
+    '出荷ID': l.出荷ID || l.出荷IDs || ''
+  }));
+  const csv = [head.join(','), ...rows.map(r=> head.map(h=> JSON.stringify(r[h]??'')).join(','))].join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'invoice_lines.csv'; a.click();
+  setTimeout(()=> URL.revokeObjectURL(url), 1000);
+}
 
 function handleImport(e, type){
   const file=e.target.files[0]; if(!file) return;
