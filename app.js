@@ -1,7 +1,7 @@
 /* =========================================================
  * app.js — Frontend
  * ========================================================= */
-const API_BASE = "https://script.google.com/macros/s/AKfycbwU5weHTlKMx7cztUIs060C9nCrQlQHCiGj3qvOzDdRFNgrAc9FO6nhqkin42nEq3df/exec"; // <= GANTI
+const API_BASE = "https://script.google.com/macros/s/AKfycbwnU2BvQ6poO4EmMut3g5Zuu_cuojNbTmM8oRSCyNJDwm_38VgS7BhsFLKU0eoUt-BAKw/exec"; // <= GANTI
 const API_KEY  = ""; // optional
 
 // PROSES baku (sinkron dengan backend)
