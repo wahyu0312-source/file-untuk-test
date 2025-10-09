@@ -1,9 +1,15 @@
+app.js
 /* =========================================================
  * app.js — Tokyo Seimitsu ERP (Frontend) — MAX Edition
+ * - Login robust (raw response guard)
+ * - SWR cache + Service Worker register
+ * - Skeleton shimmer (tanpa jeda)
+ * - Import CSV/XLSX, QR station/scan, docs, invoice, charts
+ * - Keyboard shortcut in modal (E=export, R=reset)
  * ========================================================= */
 
 /* ===== Config ===== */
-const API_BASE = "https://script.google.com/macros/s/AKfycbwnU2BvQ6poO4EmMut3g5Zuu_cuojNbTmM8oRSCyNJDwm_38VgS7BhsFLKU0eoUt-BAKw/exec"; // WAJIB: URL doGet/doPost Apps Script
+const API_BASE = "https://script.google.com/macros/s/AKfycbwnU2BvQ6poO4EmMut3g5Zuu_cuojNbTmM8oRSCyNJDwm_38VgS7BhsFLKU0eoUt-BAKw/exec"; // << GANTI ke WebApp URL kamu
 const API_KEY = ""; // optional
 
 const PROCESSES = [
@@ -90,16 +96,19 @@ async function apiPost(action, body){
 async function apiGet(params, {swrKey=null, revalidate=true} = {}){
   const url=API_BASE+'?'+new URLSearchParams(params).toString();
   const key = swrKey || ('GET:'+url);
+  // 1) tampilkan cache (kalau ada) biar “tanpa jeda”
   const cached = SWR.get(key);
   if (cached && revalidate){
+    // fire & forget revalidate
     fetch(url,{cache:'no-store'}).then(r=>r.text()).then(txt=>{
       try{
         const j=JSON.parse(txt);
         if(j.ok){ SWR.set(key, j.data); document.dispatchEvent(new CustomEvent('swr:update',{detail:{key}})); }
-      }catch(_){}
+      }catch(_){/* ignore */}
     }).catch(()=>{});
     return cached;
   }
+  // 2) normal fetch
   let res, txt;
   try{ res=await fetch(url,{cache:'no-store'}); txt=await res.text(); }
   catch(netErr){ if(cached) return cached; throw new Error('Network error: '+(netErr.message||netErr)); }
@@ -145,7 +154,7 @@ function clearSkeleton(tbody){ if(tbody) tbody.innerHTML=''; }
 
 /* ===== Boot ===== */
 window.addEventListener('DOMContentLoaded', ()=>{
-   // Nav
+  // Nav
   ['btnToDash','btnToSales','btnToPlan','btnToShip','btnToInvPage','btnToFinPage','btnToInvoice','btnToCharts']
     .forEach(id=>{
       const el=$('#'+id);
@@ -266,14 +275,9 @@ window.addEventListener('DOMContentLoaded', ()=>{
     if(key.includes('action=listSales')) renderSales().catch(console.warn);
   });
 
-
   // Restore session
   const saved=localStorage.getItem('erp_session');
   if(saved){ SESSION=JSON.parse(saved); enter(); } else { show('authView'); }
-
-  // Tambah: wire tombol "開始" di dialog scan (sebelumnya belum dihubungkan)
-  const btnScanStart = $('#btnScanStart');
-  if (btnScanStart) btnScanStart.onclick = ()=> initScan();
 });
 
 /* ===== Small utils ===== */
@@ -827,59 +831,6 @@ async function openInvoiceDoc(inv_id){
     showDoc('dlgTicket', body);
   }catch(e){ alert(e.message||e); }
 }
-// ===== Invoice: CSV Export =====
-function exportInvoiceCSV(){
-  if(!INV_PREVIEW || !INV_PREVIEW.lines || !INV_PREVIEW.lines.length){
-    alert('先に集計してください（「集計（出荷済）」を押してください）');
-    return;
-  }
-
-  const info = INV_PREVIEW.info || {};
-  const lines = INV_PREVIEW.lines || [];
-
-  // header meta (opsional, bisa dihapus kalau tidak perlu)
-  const metaRows = [
-    ['得意先', info.得意先 || ''],
-    ['期間自', info.期間自 || '', '期間至', info.期間至 || ''],
-    ['請求日', info.請求日 || '', '通貨', info.通貨 || '', 'メモ', info.メモ || ''],
-    []
-  ];
-
-  // header tabel
-  const headers = ['行No','品名','品番','図番','数量','単価','金額','PO','出荷ID'];
-
-  // data tabel
-  const dataRows = lines.map((l, i) => ([
-    i + 1,
-    l.品名 || '',
-    l.品番 || '',
-    l.図番 || '',
-    Number(l.数量 || 0),
-    Number(l.単価 || 0),
-    Number((l.数量 || 0) * (l.単価 || 0)),
-    l.PO || l.POs || '',
-    l.出荷ID || l.出荷IDs || ''
-  ]));
-
-  const escapeCSV = v => `"${String(v).replace(/"/g, '""')}"`;
-  const toRow = arr => arr.map(escapeCSV).join(',');
-
-  const csv =
-    metaRows.map(toRow).join('\r\n') + '\r\n' +
-    toRow(headers) + '\r\n' +
-    dataRows.map(toRow).join('\r\n');
-
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const fn = `invoice_${(info.得意先 || 'customer')}_${(info.請求日 || '').replace(/-/g,'')}.csv`;
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement('a');
-  a.href = url; a.download = fn;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
 
 /* ===== Charts ===== */
 function ensureChartsLoaded(){ renderCharts().catch(console.warn); }
@@ -950,3 +901,4 @@ function handleImport(e, type){
   if(file.name.endsWith('.csv')) reader.readAsText(file);
   else reader.readAsBinaryString(file);
 }
+
