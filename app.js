@@ -895,4 +895,26 @@ function handleImport(e, type){
   };
   if(file.name.endsWith('.csv')) reader.readAsText(file);
   else reader.readAsBinaryString(file);
+  async function manualSetProcess(po_id){
+  const process = prompt('工程を入力（例: レーザ加工/検査工程/…）:');
+  if (process === null) return;
+
+  // (NEW) Opsional: status manual
+  const status  = prompt('状態を入力（空欄可: 生産開始/検査保留/検査済/出荷準備/出荷済/不良品（要リペア））:') || undefined;
+
+  const okQty = Number(prompt('OK品 数量 (空=0):') || 0);
+  const ngQty = Number(prompt('不良品 数量 (空=0):') || 0);
+  const note  = prompt('備考/メモ（任意）:') || '';
+
+  try{
+    await apiPost('setProcess', {
+      po_id,
+      updates: { current_process: process, status, ok_qty: okQty, ng_qty: ngQty, note },
+      user: SESSION
+    });
+    alert('更新しました');
+    refreshAll(true);
+  }catch(e){ alert(e.message||e); }
+}
+
 }
