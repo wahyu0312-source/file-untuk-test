@@ -3,7 +3,7 @@
  * ========================================================= */
 
 /* ===== Config ===== */
-const API_BASE = "https://script.google.com/macros/s/AKfycbwnU2BvQ6poO4EmMut3g5Zuu_cuojNbTmM8oRSCyNJDwm_38VgS7BhsFLKU0eoUt-BAKw/exec"; // WAJIB: URL doGet/doPost Apps Script
+const API_BASE = "https://script.google.com/macros/s/AKfycby1n6TPWSjfl_8n260uSBwzY2srAzWcZF-y-l8IRSwAuFf0HnSp-c9wRpk-UMLpr1KIOQ/exec"; // WAJIB: URL doGet/doPost Apps Script
 const API_KEY = ""; // optional
 
 const PROCESSES = [
