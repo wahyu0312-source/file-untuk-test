@@ -3,7 +3,7 @@
  * ========================================================= */
 
 /* ===== Config ===== */
-const API_BASE = "https://script.google.com/macros/s/AKfycbz4Gkd6sj2kq9CCwB5cPlpg_hemZFfXMlFAz0qqL3SmaSG9gXv_6vV_oXgz7CAa5TBtzg/exec"; // WAJIB: URL doGet/doPost Apps Script
+const API_BASE = "https://script.google.com/macros/s/AKfycbxhRDN1AckQ9B9FvE8DnA46ueOF0tXjKvpK5PlI6uQIEk0PgpL9VOLMDHO7XpIDArEFYw/exec"; // WAJIB: URL doGet/doPost Apps Script
 const API_KEY = ""; // optional
 
 const PROCESSES = [
@@ -14,7 +14,8 @@ const PROCESSES = [
 /* ===== Station toggle rules ===== */
 const STATION_RULES = {
   'レーザ加工': (o)=> ({ current_process:'レーザ加工' }),
-  '曲げ工程': (o)=> ({ current_process:'曲げ加工' }),
+  '曲げ工程': (o)=> ({ current_process:'曲げ加工' }), // alias
+  '曲げ加工': (o)=> ({ current_process:'曲げ加工' }),
   '外枠組立': (o)=> ({ current_process:'外枠組立' }),
   'シャッター組立': (o)=> ({ current_process:'シャッター組立' }),
   'シャッター溶接': (o)=> ({ current_process:'シャッター溶接' }),
@@ -72,7 +73,7 @@ async function apiPost(action, body){
   try{
     res = await fetch(API_BASE,{
       method:'POST',
-      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify(payload),
       cache:'no-store'
     });
@@ -258,19 +259,18 @@ window.addEventListener('DOMContentLoaded', ()=>{
   // Keyboard shortcuts (modal)
   document.addEventListener('keydown', onGlobalShortcut);
 
-  // SWR update listener (optional re-render)
+  // SWR update listener
   document.addEventListener('swr:update', (ev)=>{
     const key=ev.detail?.key||'';
     if(key.includes('action=listOrders')) renderOrders().catch(console.warn);
     if(key.includes('action=listSales')) renderSales().catch(console.warn);
   });
 
-
   // Restore session
   const saved=localStorage.getItem('erp_session');
   if(saved){ SESSION=JSON.parse(saved); enter(); } else { show('authView'); }
 
-  // Tambah: wire tombol "開始" di dialog scan (sebelumnya belum dihubungkan)
+  // Wire scanner start button
   const btnScanStart = $('#btnScanStart');
   if (btnScanStart) btnScanStart.onclick = ()=> initScan();
 });
@@ -285,7 +285,6 @@ function show(id){
   const target=document.getElementById(id);
   if(target) target.classList.remove('hidden');
 
-  // highlight tombol aktif
   const map = {
     pageDash:'btnToDash', pageSales:'btnToSales', pagePlan:'btnToPlan', pageShip:'btnToShip',
     pageInventory:'btnToInvPage', pageFinished:'btnToFinPage', pageInvoice:'btnToInvoice', pageCharts:'btnToCharts'
@@ -297,22 +296,20 @@ function show(id){
 }
 
 function onGlobalShortcut(e){
-  // aktif kalau ada <dialog open>
   const dlg=document.querySelector('dialog[open]');
   if(!dlg) return;
-  if(e.key.toLowerCase()==='e'){ // export
+  if(e.key.toLowerCase()==='e'){
     const id=dlg.id;
     if(id==='dlgHistory') exportHistoryCSV();
     if(id==='dlgTicket') window.print();
     if(id==='dlgShip') window.print();
   }
-  if(e.key.toLowerCase()==='r'){ // reset isi tanggal/filter di dialog history (kalau ada)
+  if(e.key.toLowerCase()==='r'){
     const id=dlg.id;
     if(id==='dlgHistory'){
       const inp=dlg.querySelectorAll('input[type="date"]');
       inp.forEach(x=> x.value='');
       const q=dlg.querySelector('input[type="text"]'); if(q) q.value='';
-      // trigger render ulang dari cache yang ada
       const list=dlg.querySelector('#histBody'); if(list) list.innerHTML='';
     }
   }
@@ -322,12 +319,10 @@ function onGlobalShortcut(e){
 function enter(){
   const ui=$('#userInfo');
   if(ui && SESSION) ui.textContent = `${SESSION.full_name}・${SESSION.department}`;
-  // tampilkan nav + settings
   ['btnToDash','btnToSales','btnToPlan','btnToShip','btnToInvPage','btnToFinPage','btnToInvoice','btnToCharts'].forEach(id=>{
     const el=$('#'+id); if(el) el.classList.remove('hidden');
   });
   const dd=$('#ddSetting'); if(dd) dd.classList.remove('hidden');
-  // 权限 AddUser
   if(!(SESSION.role==='admin' || SESSION.department==='生産技術')){
     const miAddUser=$('#miAddUser'); if(miAddUser) miAddUser.classList.add('hidden');
   }
@@ -380,13 +375,11 @@ async function loadMasters(){
 /* ===== Dashboard (no charts) ===== */
 async function refreshAll(keep=false){
   try{
-    // stat
     const s=await apiGet({action:'stock'},{swrKey:'stock'});
     $('#statFinished').textContent=s.finishedStock;
     $('#statReady').textContent=s.ready;
     $('#statShipped').textContent=s.shipped;
 
-    // today ship
     const listToday=$('#listToday');
     if(listToday) listToday.innerHTML='<div class="shimmer" style="height:16px;border-radius:8px"></div>';
     const today=await apiGet({action:'todayShip'},{swrKey:'todayShip'});
@@ -394,7 +387,6 @@ async function refreshAll(keep=false){
       listToday.innerHTML = today.length ? today.map(r=>`<div><span>${r.po_id}</span><span>${fmtD(r.scheduled_date)}・${r.qty}</span></div>`).join('') : '<div class="muted">本日予定なし</div>';
     }
 
-    // loc snapshot
     const grid=$('#gridProc');
     if(grid) grid.innerHTML = PROCESSES.map(()=>`<div class="shimmer" style="height:26px;border-radius:8px"></div>`).join('');
     const loc=await apiGet({action:'locSnapshot'},{swrKey:'locSnapshot'});
@@ -520,7 +512,7 @@ async function createOrderUI(){
     '品名':$('#c_hinmei')?$('#c_hinmei').value.trim():'', '品番':$('#c_hinban')?$('#c_hinban').value.trim():'',
     '図番':$('#c_zuban')?$('#c_zuban').value.trim():'', '管理No':$('#c_kanri')?$('#c_kanri').value.trim():''
   };
-  const editingPoEl=$('#c_po'); const editingPo=editingPoEl?editingPoEl.value.trim():''; 
+  const editingPoEl=$('#c_po'); const editingPo=editingPoEl?editingPoEl.value.trim():'';
   try{
     if(editingPo){ await apiPost('updateOrder',{po_id:editingPo,updates:p,user:SESSION}); alert('編集保存しました'); }
     else{ const r=await apiPost('createOrder',{payload:p,user:SESSION}); alert('作成: '+r.po_id); if(editingPoEl) editingPoEl.value=r.po_id; }
@@ -540,7 +532,7 @@ async function loadOrderForEdit(){
 }
 async function deleteOrderUI(){
   if(!(SESSION && (SESSION.role==='admin'||SESSION.department==='生産技術'||SESSION.department==='生産管理部'))) return alert('権限不足');
-  const poEl=$('#c_po'); const po=poEl?poEl.value.trim():''; 
+  const poEl=$('#c_po'); const po=poEl?poEl.value.trim():'';
   if(!po) return alert('注番入力'); if(!confirm('削除しますか？')) return;
   try{ const r=await apiPost('deleteOrder',{po_id:po,user:SESSION}); alert('削除:'+r.deleted); refreshAll(); }
   catch(e){ alert(e.message||e); }
@@ -653,7 +645,6 @@ function openStationQR(){
   wrap.innerHTML = PROCESSES.map(p=>`<div id="qr-${p}" style="display:flex;flex-direction:column;align-items:center;gap:.35rem">
       <div class="muted s">${p}</div><div class="qrbox" data-text="ST:${p}"></div></div>`).join('');
   dlg.showModal();
-  // generate
   setTimeout(()=>{
     wrap.querySelectorAll('.qrbox').forEach(div=>{
       const t=div.dataset.text;
@@ -691,7 +682,8 @@ async function initScan(){
             const o=await apiGet({action:'ticket',po_id:CURRENT_PO});
             const rule=STATION_RULES[station] || ((_o)=>({current_process:station}));
             const updates=rule(o) || {};
-            await apiPost('updateOrder',{po_id:CURRENT_PO,updates,user:SESSION});
+            // KOREKSI: kirim 'updates' ke backend
+            await apiPost('updateOrder',{po_id:CURRENT_PO,updates:updates,user:SESSION});
             alert('更新しました'); refreshAll(true);
           }catch(e){ alert(e.message||e); }
         }
@@ -866,7 +858,6 @@ function downloadCSV(filename, rows){
 }
 async function exportOrdersCSV(){ const rows=await apiGet({action:'listOrders'},{swrKey:'orders'}); downloadCSV('orders.csv', rows); }
 async function exportShipCSV(){ const rows=await apiGet({action:'todayShip'},{swrKey:'todayShip'}); downloadCSV('today_ship.csv', rows); }
-// === NEW: Export current invoice preview lines to CSV ===
 function exportInvoiceCSV(){
   if (!INV_PREVIEW || !INV_PREVIEW.lines || !INV_PREVIEW.lines.length){
     alert('先に「集計（出荷済）」を実行してください。');
@@ -899,7 +890,6 @@ function handleImport(e, type){
     const data = ev.target.result;
     let rows=[];
     if(file.name.endsWith('.csv')){
-      // parse sederhana
       const lines = data.split(/\r?\n/).filter(Boolean);
       const head = lines.shift().split(',').map(h=> h.replace(/^"|"$/g,''));
       rows = lines.map(line=>{
@@ -920,26 +910,4 @@ function handleImport(e, type){
   };
   if(file.name.endsWith('.csv')) reader.readAsText(file);
   else reader.readAsBinaryString(file);
-  async function manualSetProcess(po_id){
-  const process = prompt('工程を入力（例: レーザ加工/検査工程/…）:');
-  if (process === null) return;
-
-  // (NEW) Opsional: status manual
-  const status  = prompt('状態を入力（空欄可: 生産開始/検査保留/検査済/出荷準備/出荷済/不良品（要リペア））:') || undefined;
-
-  const okQty = Number(prompt('OK品 数量 (空=0):') || 0);
-  const ngQty = Number(prompt('不良品 数量 (空=0):') || 0);
-  const note  = prompt('備考/メモ（任意）:') || '';
-
-  try{
-    await apiPost('setProcess', {
-      po_id,
-      updates: { current_process: process, status, ok_qty: okQty, ng_qty: ngQty, note },
-      user: SESSION
-    });
-    alert('更新しました');
-    refreshAll(true);
-  }catch(e){ alert(e.message||e); }
-}
-
 }
